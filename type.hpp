@@ -15,7 +15,6 @@ enum class ScalarTypeKind {
     NONE,
     NEVER,
     BOOL,
-    BYTE,
     INT,
     FLOAT,
 };
@@ -24,7 +23,6 @@ constexpr std::string_view SCALAR_TYPE_NAME[] = {
     "none",
     "never",
     "bool",
-    "byte",
     "int",
     "float",
 };
@@ -33,7 +31,6 @@ constexpr std::string_view SCALAR_TYPE_DESC[] = {
     "void",
     "void",
     "i1",
-    "u8",
     "i64",
     "double",
 };
@@ -42,7 +39,6 @@ const std::unordered_map<std::string_view, ScalarTypeKind> SCALAR_TYPES {
     {"none",   ScalarTypeKind::NONE},
     {"never",  ScalarTypeKind::NEVER},
     {"bool",   ScalarTypeKind::BOOL},
-    {"byte",   ScalarTypeKind::BYTE},
     {"int",    ScalarTypeKind::INT},
     {"float",  ScalarTypeKind::FLOAT},
 };
@@ -100,7 +96,6 @@ namespace ScalarTypes {
 const TypeReference NONE = std::make_shared<ScalarType>(ScalarTypeKind::NONE);
 const TypeReference NEVER = std::make_shared<ScalarType>(ScalarTypeKind::NEVER);
 const TypeReference BOOL = std::make_shared<ScalarType>(ScalarTypeKind::BOOL);
-const TypeReference BYTE = std::make_shared<ScalarType>(ScalarTypeKind::BYTE);
 const TypeReference INT = std::make_shared<ScalarType>(ScalarTypeKind::INT);
 const TypeReference FLOAT = std::make_shared<ScalarType>(ScalarTypeKind::FLOAT);
 }
@@ -130,10 +125,6 @@ const TypeReference FLOAT = std::make_shared<ScalarType>(ScalarTypeKind::FLOAT);
     return isScalar(type, ScalarTypeKind::BOOL);
 }
 
-[[nodiscard]] inline bool isByte(TypeReference const& type) noexcept {
-    return isScalar(type, ScalarTypeKind::BYTE);
-}
-
 [[nodiscard]] inline bool isInt(TypeReference const& type) noexcept {
     return isScalar(type, ScalarTypeKind::INT);
 }
@@ -148,10 +139,6 @@ const TypeReference FLOAT = std::make_shared<ScalarType>(ScalarTypeKind::FLOAT);
 
 [[nodiscard]] inline bool isArithmetic(TypeReference const& type) noexcept {
     return isScalar(type, [](ScalarTypeKind kind) noexcept { return kind == ScalarTypeKind::INT || kind == ScalarTypeKind::FLOAT; });
-}
-
-[[nodiscard]] inline bool isIntegral(TypeReference const& type) noexcept {
-    return isScalar(type, [](ScalarTypeKind kind) noexcept { return kind == ScalarTypeKind::INT || kind == ScalarTypeKind::BYTE; });
 }
 
 struct PointerType : Type {

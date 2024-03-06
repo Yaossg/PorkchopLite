@@ -255,6 +255,7 @@ struct Assembler {
         append(buf);
         indent += 4;
     }
+
     size_t indent = 0;
 
     void append(std::string line) {

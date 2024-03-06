@@ -225,8 +225,6 @@ ExprHandle Parser::parseExpression(Expr::Level level) {
                     return make<BoolConstExpr>(next());
                 case TokenType::CHARACTER_LITERAL:
                     return make<CharConstExpr>(next());
-                case TokenType::STRING_QQ:
-                    return make<StringConstExpr>(next());
                 case TokenType::BINARY_INTEGER:
                 case TokenType::OCTAL_INTEGER:
                 case TokenType::DECIMAL_INTEGER:
@@ -237,35 +235,6 @@ ExprHandle Parser::parseExpression(Expr::Level level) {
                 case TokenType::KW_NAN:
                 case TokenType::KW_INF:
                     return make<FloatConstExpr>(next());
-
-                case TokenType::STRING_QD: {
-                    Token token1 = next(), token2;
-                    std::vector<std::unique_ptr<StringConstExpr>> literals;
-                    std::vector<ExprHandle> elements;
-                    literals.push_back(make<StringConstExpr>(token1));
-                    do {
-                        elements.push_back(parseExpression(Expr::Level::PRIMARY));
-                        token2 = next();
-                        literals.push_back(make<StringConstExpr>(token2));
-                    } while (token2.type != TokenType::STRING_UQ);
-                    return make<InterpolationExpr>(token1, token2, std::move(literals), std::move(elements));
-                }
-                case TokenType::RAW_STRING_QQ:
-                case TokenType::RAW_STRING_QD:
-                case TokenType::RAW_STRING_QU: {
-                    Token token1 = next();
-                    Token token2 = token1;
-                    std::vector<ExprHandle> elements;
-                    while (true) {
-                        elements.emplace_back(make<StringConstExpr>(token2));
-                        if (token2.type == TokenType::RAW_STRING_UQ || token2.type == TokenType::RAW_STRING_QQ) break;
-                        if (token2.type == TokenType::RAW_STRING_QD || token2.type == TokenType::RAW_STRING_UD) {
-                            elements.push_back(parseExpression(Expr::Level::PRIMARY));
-                        }
-                        token2 = next();
-                    }
-                    return make<RawStringExpr>(token1, token2, std::move(elements));
-                }
 
                 case TokenType::KW_WHILE:
                     return parseWhile();

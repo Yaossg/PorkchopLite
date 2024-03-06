@@ -106,18 +106,6 @@ std::optional<$union> CharConstExpr::evalConst() const {
     return (int64_t)parsed;
 }
 
-StringConstExpr::StringConstExpr(Compiler &compiler, Token token) : ConstExpr(compiler, token) {
-    parsed = parseString(compiler.source, token);
-}
-
-TypeReference StringConstExpr::evalType(TypeReference const& infer) const {
-    return ScalarTypes::NONE;
-}
-
-void StringConstExpr::walkBytecode(Assembler* assembler) const {
-//    assembler->sconst(parsed);
-}
-
 IntConstExpr::IntConstExpr(Compiler &compiler, Token token, bool merged) : ConstExpr(compiler, token), merged(merged) {
     switch (token.type) {
         case TokenType::KW_LINE:
@@ -221,7 +209,7 @@ TypeReference PrefixExpr::evalType(TypeReference const& infer) const {
             rhs->expect(ScalarTypes::BOOL);
             break;
         case TokenType::OP_INV:
-            rhs->expect(isIntegral, "integral type");
+            rhs->expect(ScalarTypes::INT);
             break;
         default:
             unreachable();
@@ -368,13 +356,13 @@ TypeReference InfixExpr::evalType(TypeReference const& infer) const {
         case TokenType::OP_OR:
         case TokenType::OP_XOR:
         case TokenType::OP_AND:
-            lhs->expect(isIntegral, "integral type");
+            lhs->expect(ScalarTypes::INT);
             matchOperands(lhs.get(), rhs.get());
             return type1;
         case TokenType::OP_SHL:
         case TokenType::OP_SHR:
         case TokenType::OP_USHR:
-            lhs->expect(isIntegral, "integral type");
+            lhs->expect(ScalarTypes::INT);
             rhs->expect(ScalarTypes::INT);
             return type1;
         case TokenType::OP_ADD:
@@ -695,13 +683,13 @@ TypeReference AssignExpr::evalType(TypeReference const& infer) const {
         case TokenType::OP_ASSIGN_AND:
         case TokenType::OP_ASSIGN_XOR:
         case TokenType::OP_ASSIGN_OR:
-            lhs->expect(isIntegral, "integral type");
+            lhs->expect(ScalarTypes::INT);
             rhs->expect(type1);
             return type1;
         case TokenType::OP_ASSIGN_SHL:
         case TokenType::OP_ASSIGN_SHR:
         case TokenType::OP_ASSIGN_USHR:
-            lhs->expect(isIntegral, "integral type");
+            lhs->expect(ScalarTypes::INT);
             rhs->expect(ScalarTypes::INT);
             return type1;
         case TokenType::OP_ASSIGN_ADD:
@@ -874,8 +862,7 @@ void InvokeExpr::walkBytecode(Assembler* assembler) const {
 TypeReference AsExpr::evalType(TypeReference const& infer) const {
     auto type = lhs->getType(T);
     if (T->assignableFrom(type)
-        || isSimilar(isArithmetic, type, T)
-        || isSimilar(isIntegral, type, T)) return T;
+        || isSimilar(isArithmetic, type, T)) return T;
     Error().with(
             ErrorMessage().error(segment())
             .text("cannot cast this expression from").type(type).text("to").type(T)
@@ -886,9 +873,7 @@ std::optional<$union> AsExpr::evalConst() const {
     if (!lhs->isConst()) return std::nullopt;
     auto value = lhs->requireConst();
     if (isInt(lhs->getType())) {
-        if (isByte(T)) {
-            return value.$byte;
-        } else if (isFloat(T)) {
+        if (isFloat(T)) {
             return (double)value.$int;
         }
     } else if (isInt(T)) {
@@ -904,9 +889,7 @@ void AsExpr::walkBytecode(Assembler* assembler) const {
     if (lhs->getType()->equals(T)) return;
     if (isNone(T)) {
     } else if (isInt(lhs->getType())) {
-        if (isByte(T)) {
-//            assembler->opcode(Opcode::I2B);
-        } else if (isFloat(T)) {
+        if (isFloat(T)) {
             reg = assembler->i2f(lhs->reg);
         }
     } else if (isInt(T)) {
@@ -1058,38 +1041,6 @@ TypeReference LetExpr::evalType(TypeReference const& infer) const {
 void LetExpr::walkBytecode(Assembler *assembler) const {
     initializer->walkBytecode(assembler);
     declarator->walkBytecode(reg = initializer->reg, assembler);
-}
-
-TypeReference InterpolationExpr::evalType(TypeReference const& infer) const {
-    for (auto&& element : elements) {
-        element->getType();
-    }
-    return ScalarTypes::NONE;
-}
-
-void InterpolationExpr::walkBytecode(Assembler *assembler) const {
-    for (size_t i = 0; i < elements.size(); ++i) {
-        literals[i]->walkBytecode(assembler);
-        elements[i]->walkBytecode(assembler);
-        toStringBytecode(assembler, elements[i]->getType());
-    }
-    literals.back()->walkBytecode(assembler);
-//    assembler->indexed(Opcode::SJOIN, literals.size() + elements.size());
-}
-
-TypeReference RawStringExpr::evalType(TypeReference const& infer) const {
-    for (auto&& element : elements) {
-        element->getType();
-    }
-    return ScalarTypes::NONE;
-}
-
-void RawStringExpr::walkBytecode(Assembler *assembler) const {
-    for (auto&& element : elements) {
-        element->walkBytecode(assembler);
-        toStringBytecode(assembler, element->getType());
-    }
-//    assembler->indexed(Opcode::SJOIN, elements.size());
 }
 
 }

@@ -31,7 +31,7 @@ void Source::append(std::string const& code) {
 }
 
 bool Source::remains() {
-    return !greedy.empty() || lines.back().ends_with('\\') || raw;
+    return !greedy.empty() || lines.back().ends_with('\\');
 }
 
 }

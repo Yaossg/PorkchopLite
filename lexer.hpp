@@ -54,8 +54,8 @@ struct LineTokenizer {
     }
 
     void add(TokenType type);
-    void addLBrace(Source::BraceType braceType);
-    Source::BraceType addRBrace();
+    void addLBrace();
+    void addRBrace();
     [[noreturn]] void raise(const char* msg) const;
     void tokenize();
     void addLinebreak(bool semicolon);
@@ -64,8 +64,6 @@ struct LineTokenizer {
     void scanDigits(bool pred(char) noexcept);
     void addNumber();
     void addChar();
-    void addString(bool first);
-    void addRawString(bool first);
     void checkGreedy(const char* left, const char* right, TokenType match);
 };
 
