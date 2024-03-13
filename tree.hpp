@@ -76,7 +76,7 @@ struct Expr : Descriptor {
     }
     $union requireConst() const;
 
-    mutable size_t reg = -1;
+    mutable std::string reg = "%error";
 protected:
     [[nodiscard]] virtual TypeReference evalType(TypeReference const& infer) const = 0;
     [[nodiscard]] virtual std::optional<$union> evalConst() const {
@@ -155,11 +155,11 @@ struct FloatConstExpr : ConstExpr {
 struct AssignableExpr : Expr {
     explicit AssignableExpr(Compiler& compiler): Expr(compiler) {}
 
-    virtual void walkStoreBytecode(size_t from, Assembler* assembler) const = 0;
+    virtual void walkStoreBytecode(std::string const& from, Assembler* assembler) const = 0;
 
     virtual void ensureAssignable() const = 0;
 
-    virtual size_t addressOf(Assembler* assembler) const = 0;
+    virtual std::string addressOf(Assembler* assembler) const = 0;
 };
 
 struct IdExpr : AssignableExpr {
@@ -184,11 +184,11 @@ struct IdExpr : AssignableExpr {
 
     void walkBytecode(Assembler* assembler) const override;
 
-    void walkStoreBytecode(size_t from, Assembler* assembler) const override;
+    void walkStoreBytecode(std::string const& from, Assembler* assembler) const override;
 
     void ensureAssignable() const override;
 
-    size_t addressOf(Assembler* assembler) const override;
+    std::string addressOf(Assembler* assembler) const override;
 };
 
 struct PrefixExpr : Expr {
@@ -283,11 +283,11 @@ struct DereferenceExpr : AssignableExpr {
 
     void walkBytecode(Assembler* assembler) const override;
 
-    void walkStoreBytecode(size_t from, Assembler* assembler) const override;
+    void walkStoreBytecode(std::string const& from, Assembler* assembler) const override;
 
     void ensureAssignable() const override;
 
-    size_t addressOf(Assembler* assembler) const override;
+    std::string addressOf(Assembler* assembler) const override;
 };
 
 struct InfixExprBase : Expr {
@@ -389,11 +389,11 @@ struct AccessExpr : AssignableExpr {
 
     void walkBytecode(Assembler* assembler) const override;
 
-    void walkStoreBytecode(size_t from, Assembler* assembler) const override;
+    void walkStoreBytecode(std::string const& from, Assembler* assembler) const override;
 
     void ensureAssignable() const override;
 
-    size_t addressOf(Assembler* assembler) const override;
+    std::string addressOf(Assembler* assembler) const override;
 };
 
 struct InvokeExpr : Expr {
@@ -417,7 +417,7 @@ struct InvokeExpr : Expr {
 
     [[nodiscard]] TypeReference evalType(TypeReference const& infer) const override;
 
-    static size_t walkBytecode(const Expr *lhs, const std::vector<const Expr *> &rhs, Assembler *assembler, const TypeReference& type);
+    static std::string walkBytecode(const Expr *lhs, const std::vector<const Expr *> &rhs, Assembler *assembler, const TypeReference& type);
 
     void walkBytecode(Assembler* assembler) const override;
 };
@@ -491,7 +491,7 @@ struct IfElseExpr : Expr {
 
     void walkBytecode(Assembler* assembler) const override;
 
-    [[nodiscard]] static size_t walkBytecode(Expr const* cond, Expr const* lhs, Expr const* rhs, Compiler& compiler, Assembler* assembler, const TypeReference& type);
+    [[nodiscard]] static std::string walkBytecode(Expr const* cond, Expr const* lhs, Expr const* rhs, Compiler& compiler, Assembler* assembler, const TypeReference& type);
 };
 
 struct LoopHook;
@@ -633,7 +633,7 @@ struct Declarator : Descriptor {
 
     virtual void infer(TypeReference type) = 0;
     virtual void declare(LocalContext& context) const = 0;
-    virtual void walkBytecode(size_t from, Assembler* assembler) const = 0;
+    virtual void walkBytecode(std::string const&, Assembler* assembler) const = 0;
 };
 
 struct SimpleDeclarator : Declarator {
@@ -649,7 +649,7 @@ struct SimpleDeclarator : Declarator {
 
     void infer(TypeReference type) override;
     void declare(LocalContext &context) const override;
-    void walkBytecode(size_t from, Assembler *assembler) const override;
+    void walkBytecode(std::string const&, Assembler *assembler) const override;
 };
 
 struct LetExpr : Expr {

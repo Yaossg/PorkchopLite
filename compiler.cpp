@@ -77,7 +77,7 @@ void Compiler::compileFn(FunctionDeclarator* fn, Assembler* assembler) const {
         for (auto&& local : definition->locals) {
             auto reg = assembler->local(local);
             if (param < index) {
-                assembler->store(param, reg, fn->parameters->prototype->P[param]);
+                assembler->store(Assembler::regOf(param), reg, fn->parameters->prototype->P[param]);
                 ++param;
             }
         }

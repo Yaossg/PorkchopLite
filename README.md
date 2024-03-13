@@ -146,45 +146,39 @@ L0:
     %7 = alloca i64, align 8
     %8 = load i64*, i64** %3, align 8
     store i64* %8, i64** %6, align 8
-    %9 = alloca i64, align 8
-    store i64 1, i64* %9, align 8
-    %10 = load i64, i64* %9, align 8
-    store i64 %10, i64* %7, align 8
+    store i64 1, i64* %7, align 8
     br label %L1
 L1:
-    %11 = load i64, i64* %7, align 8
-    %12 = load i64, i64* %4, align 8
-    %13 = icmp slt i64 %11, %12
-    br i1 %13, label %L2, label %L3
+    %9 = load i64, i64* %7, align 8
+    %10 = load i64, i64* %4, align 8
+    %11 = icmp slt i64 %9, %10
+    br i1 %11, label %L2, label %L3
 L2:
-    %14 = load ptr, ptr %5, align 8
-    %15 = load i64*, i64** %3, align 8
-    %16 = load i64, i64* %7, align 8
-    %17 = getelementptr inbounds i64, ptr %15, i64 %16
+    %12 = load ptr, ptr %5, align 8
+    %13 = load i64*, i64** %3, align 8
+    %14 = load i64, i64* %7, align 8
+    %15 = getelementptr inbounds i64, ptr %13, i64 %14
+    %16 = load i64, i64* %15, align 8
+    %17 = load i64*, i64** %6, align 8
     %18 = load i64, i64* %17, align 8
-    %19 = load i64*, i64** %6, align 8
-    %20 = load i64, i64* %19, align 8
-    %21 = call i1 %14(i64 %18, i64 %20)
-    br i1 %21, label %L4, label %L5
+    %19 = call i1 %12(i64 %16, i64 %18)
+    br i1 %19, label %L4, label %L5
 L4:
-    %22 = load i64*, i64** %3, align 8
-    %23 = load i64, i64* %7, align 8
-    %24 = getelementptr inbounds i64, ptr %22, i64 %23
-    store i64* %24, i64** %6, align 8
+    %20 = load i64*, i64** %3, align 8
+    %21 = load i64, i64* %7, align 8
+    %22 = getelementptr inbounds i64, ptr %20, i64 %21
+    store i64* %22, i64** %6, align 8
     br label %L6
 L5:
     br label %L6
 L6:
-    %25 = alloca i64, align 8
-    store i64 1, i64* %25, align 8
-    %26 = load i64, i64* %25, align 8
-    %27 = load i64, i64* %7, align 8
-    %28 = add i64 %27, %26
-    store i64 %28, i64* %7, align 8
+    %23 = load i64, i64* %7, align 8
+    %24 = add i64 %23, 1
+    store i64 %24, i64* %7, align 8
     br label %L1
 L3:
-    %29 = load i64*, i64** %6, align 8
-    ret i64* %29
+    %25 = load i64*, i64** %6, align 8
+    ret i64* %25
 }
 define void @sort(i64* %0, i64 %1, ptr %2) {
 L0:
@@ -195,41 +189,35 @@ L0:
     %5 = alloca ptr, align 8
     store ptr %2, ptr %5, align 8
     %6 = alloca i64, align 8
-    %7 = alloca i64, align 8
-    store i64 0, i64* %7, align 8
-    %8 = load i64, i64* %7, align 8
-    store i64 %8, i64* %6, align 8
+    store i64 0, i64* %6, align 8
     br label %L1
 L1:
-    %9 = load i64, i64* %6, align 8
-    %10 = load i64, i64* %4, align 8
-    %11 = icmp slt i64 %9, %10
-    br i1 %11, label %L2, label %L3
+    %7 = load i64, i64* %6, align 8
+    %8 = load i64, i64* %4, align 8
+    %9 = icmp slt i64 %7, %8
+    br i1 %9, label %L2, label %L3
 L2:
-    %12 = alloca ptr, align 8
-    store ptr @swap, ptr %12, align 8
-    %13 = load ptr, ptr %12, align 8
-    %14 = load i64*, i64** %3, align 8
-    %15 = load i64, i64* %6, align 8
-    %16 = getelementptr inbounds i64, ptr %14, i64 %15
-    %17 = alloca ptr, align 8
-    store ptr @min_element, ptr %17, align 8
-    %18 = load ptr, ptr %17, align 8
-    %19 = load i64*, i64** %3, align 8
-    %20 = load i64, i64* %6, align 8
-    %21 = getelementptr inbounds i64, ptr %19, i64 %20
-    %22 = load i64, i64* %4, align 8
-    %23 = load i64, i64* %6, align 8
-    %24 = sub i64 %22, %23
-    %25 = load ptr, ptr %5, align 8
-    %26 = call i64* %18(i64* %21, i64 %24, ptr %25)
-    call void %13(i64* %16, i64* %26)
-    %27 = alloca i64, align 8
-    store i64 1, i64* %27, align 8
-    %28 = load i64, i64* %27, align 8
-    %29 = load i64, i64* %6, align 8
-    %30 = add i64 %29, %28
-    store i64 %30, i64* %6, align 8
+    %10 = alloca ptr, align 8
+    store ptr @swap, ptr %10, align 8
+    %11 = load ptr, ptr %10, align 8
+    %12 = load i64*, i64** %3, align 8
+    %13 = load i64, i64* %6, align 8
+    %14 = getelementptr inbounds i64, ptr %12, i64 %13
+    %15 = alloca ptr, align 8
+    store ptr @min_element, ptr %15, align 8
+    %16 = load ptr, ptr %15, align 8
+    %17 = load i64*, i64** %3, align 8
+    %18 = load i64, i64* %6, align 8
+    %19 = getelementptr inbounds i64, ptr %17, i64 %18
+    %20 = load i64, i64* %4, align 8
+    %21 = load i64, i64* %6, align 8
+    %22 = sub i64 %20, %21
+    %23 = load ptr, ptr %5, align 8
+    %24 = call i64* %16(i64* %19, i64 %22, ptr %23)
+    call void %11(i64* %14, i64* %24)
+    %25 = load i64, i64* %6, align 8
+    %26 = add i64 %25, 1
+    store i64 %26, i64* %6, align 8
     br label %L1
 L3:
     ret void
@@ -263,122 +251,77 @@ L0:
     %2 = alloca ptr, align 8
     store ptr @alloc_int_array, ptr %2, align 8
     %3 = load ptr, ptr %2, align 8
-    %4 = alloca i64, align 8
-    store i64 10, i64* %4, align 8
-    %5 = load i64, i64* %4, align 8
-    %6 = call i64* %3(i64 %5)
-    store i64* %6, i64** %0, align 8
-    %7 = alloca i64, align 8
-    store i64 1, i64* %7, align 8
-    %8 = load i64, i64* %7, align 8
-    %9 = load i64*, i64** %0, align 8
-    %10 = alloca i64, align 8
-    store i64 0, i64* %10, align 8
-    %11 = load i64, i64* %10, align 8
-    %12 = getelementptr inbounds i64, ptr %9, i64 %11
-    store i64 %8, i64* %12, align 8
-    %13 = alloca i64, align 8
-    store i64 2, i64* %13, align 8
-    %14 = load i64, i64* %13, align 8
-    %15 = load i64*, i64** %0, align 8
-    %16 = alloca i64, align 8
-    store i64 1, i64* %16, align 8
-    %17 = load i64, i64* %16, align 8
-    %18 = getelementptr inbounds i64, ptr %15, i64 %17
-    store i64 %14, i64* %18, align 8
-    %19 = alloca i64, align 8
-    store i64 2, i64* %19, align 8
-    %20 = load i64, i64* %19, align 8
-    store i64 %20, i64* %1, align 8
+    %4 = call i64* %3(i64 10)
+    store i64* %4, i64** %0, align 8
+    %5 = load i64*, i64** %0, align 8
+    %6 = getelementptr inbounds i64, ptr %5, i64 0
+    store i64 1, i64* %6, align 8
+    %7 = load i64*, i64** %0, align 8
+    %8 = getelementptr inbounds i64, ptr %7, i64 1
+    store i64 2, i64* %8, align 8
+    store i64 2, i64* %1, align 8
     br label %L1
 L1:
-    %21 = load i64, i64* %1, align 8
-    %22 = alloca i64, align 8
-    store i64 10, i64* %22, align 8
-    %23 = load i64, i64* %22, align 8
-    %24 = icmp slt i64 %21, %23
-    br i1 %24, label %L2, label %L3
+    %9 = load i64, i64* %1, align 8
+    %10 = icmp slt i64 %9, 10
+    br i1 %10, label %L2, label %L3
 L2:
-    %25 = load i64*, i64** %0, align 8
-    %26 = load i64, i64* %1, align 8
-    %27 = alloca i64, align 8
-    store i64 1, i64* %27, align 8
-    %28 = load i64, i64* %27, align 8
-    %29 = sub i64 %26, %28
-    %30 = getelementptr inbounds i64, ptr %25, i64 %29
-    %31 = load i64, i64* %30, align 8
-    %32 = load i64*, i64** %0, align 8
-    %33 = load i64, i64* %1, align 8
-    %34 = alloca i64, align 8
-    store i64 2, i64* %34, align 8
-    %35 = load i64, i64* %34, align 8
-    %36 = sub i64 %33, %35
-    %37 = getelementptr inbounds i64, ptr %32, i64 %36
-    %38 = load i64, i64* %37, align 8
-    %39 = add i64 %31, %38
-    %40 = load i64*, i64** %0, align 8
-    %41 = load i64, i64* %1, align 8
-    %42 = getelementptr inbounds i64, ptr %40, i64 %41
-    store i64 %39, i64* %42, align 8
-    %43 = alloca i64, align 8
-    store i64 1, i64* %43, align 8
-    %44 = load i64, i64* %43, align 8
-    %45 = load i64, i64* %1, align 8
-    %46 = add i64 %45, %44
-    store i64 %46, i64* %1, align 8
+    %11 = load i64*, i64** %0, align 8
+    %12 = load i64, i64* %1, align 8
+    %13 = sub i64 %12, 1
+    %14 = getelementptr inbounds i64, ptr %11, i64 %13
+    %15 = load i64, i64* %14, align 8
+    %16 = load i64*, i64** %0, align 8
+    %17 = load i64, i64* %1, align 8
+    %18 = sub i64 %17, 2
+    %19 = getelementptr inbounds i64, ptr %16, i64 %18
+    %20 = load i64, i64* %19, align 8
+    %21 = add i64 %15, %20
+    %22 = load i64*, i64** %0, align 8
+    %23 = load i64, i64* %1, align 8
+    %24 = getelementptr inbounds i64, ptr %22, i64 %23
+    store i64 %21, i64* %24, align 8
+    %25 = load i64, i64* %1, align 8
+    %26 = add i64 %25, 1
+    store i64 %26, i64* %1, align 8
     br label %L1
 L3:
-    %47 = alloca ptr, align 8
-    store ptr @print_int_array, ptr %47, align 8
-    %48 = load ptr, ptr %47, align 8
-    %49 = load i64*, i64** %0, align 8
-    %50 = alloca i64, align 8
-    store i64 10, i64* %50, align 8
-    %51 = load i64, i64* %50, align 8
-    call void %48(i64* %49, i64 %51)
-    %52 = alloca ptr, align 8
-    store ptr @sort, ptr %52, align 8
-    %53 = load ptr, ptr %52, align 8
-    %54 = load i64*, i64** %0, align 8
-    %55 = alloca i64, align 8
-    store i64 10, i64* %55, align 8
-    %56 = load i64, i64* %55, align 8
-    %57 = alloca ptr, align 8
-    store ptr @greater, ptr %57, align 8
-    %58 = load ptr, ptr %57, align 8
-    call void %53(i64* %54, i64 %56, ptr %58)
-    %59 = alloca ptr, align 8
-    store ptr @print_int_array, ptr %59, align 8
-    %60 = load ptr, ptr %59, align 8
-    %61 = load i64*, i64** %0, align 8
-    %62 = alloca i64, align 8
-    store i64 10, i64* %62, align 8
-    %63 = load i64, i64* %62, align 8
-    call void %60(i64* %61, i64 %63)
-    %64 = alloca ptr, align 8
-    store ptr @sort, ptr %64, align 8
-    %65 = load ptr, ptr %64, align 8
-    %66 = load i64*, i64** %0, align 8
-    %67 = alloca i64, align 8
-    store i64 10, i64* %67, align 8
-    %68 = load i64, i64* %67, align 8
-    %69 = alloca ptr, align 8
-    store ptr @less, ptr %69, align 8
-    %70 = load ptr, ptr %69, align 8
-    call void %65(i64* %66, i64 %68, ptr %70)
-    %71 = alloca ptr, align 8
-    store ptr @print_int_array, ptr %71, align 8
-    %72 = load ptr, ptr %71, align 8
-    %73 = load i64*, i64** %0, align 8
-    %74 = alloca i64, align 8
-    store i64 10, i64* %74, align 8
-    %75 = load i64, i64* %74, align 8
-    call void %72(i64* %73, i64 %75)
-    %76 = alloca ptr, align 8
-    store ptr @dealloc_int_array, ptr %76, align 8
-    %77 = load ptr, ptr %76, align 8
-    %78 = load i64*, i64** %0, align 8
-    call void %77(i64* %78)
+    %27 = alloca ptr, align 8
+    store ptr @print_int_array, ptr %27, align 8
+    %28 = load ptr, ptr %27, align 8
+    %29 = load i64*, i64** %0, align 8
+    call void %28(i64* %29, i64 10)
+    %30 = alloca ptr, align 8
+    store ptr @sort, ptr %30, align 8
+    %31 = load ptr, ptr %30, align 8
+    %32 = load i64*, i64** %0, align 8
+    %33 = alloca ptr, align 8
+    store ptr @greater, ptr %33, align 8
+    %34 = load ptr, ptr %33, align 8
+    call void %31(i64* %32, i64 10, ptr %34)
+    %35 = alloca ptr, align 8
+    store ptr @print_int_array, ptr %35, align 8
+    %36 = load ptr, ptr %35, align 8
+    %37 = load i64*, i64** %0, align 8
+    call void %36(i64* %37, i64 10)
+    %38 = alloca ptr, align 8
+    store ptr @sort, ptr %38, align 8
+    %39 = load ptr, ptr %38, align 8
+    %40 = load i64*, i64** %0, align 8
+    %41 = alloca ptr, align 8
+    store ptr @less, ptr %41, align 8
+    %42 = load ptr, ptr %41, align 8
+    call void %39(i64* %40, i64 10, ptr %42)
+    %43 = alloca ptr, align 8
+    store ptr @print_int_array, ptr %43, align 8
+    %44 = load ptr, ptr %43, align 8
+    %45 = load i64*, i64** %0, align 8
+    call void %44(i64* %45, i64 10)
+    %46 = alloca ptr, align 8
+    store ptr @dealloc_int_array, ptr %46, align 8
+    %47 = load ptr, ptr %46, align 8
+    %48 = load i64*, i64** %0, align 8
+    call void %47(i64* %48)
     ret void
 }
 ```
@@ -506,9 +449,9 @@ note: type of right operand is 'float'
 fn main() = {
     _ = 1 # discard this one
     
-    _ # obtain a none via load
-    () # obtain a none via const
-    {} # obtain a none via const
+    _  # none
+    () # none
+    {} # none
 }
 ```
 
@@ -663,7 +606,7 @@ fn main() = {}
 
 ## 指针
 
-> 当你用一根手指指着别人的时候,别忘了有三根手指指着自己。
+> 当你用一根手指指着别人的时候，别忘了有三根手指指着自己。
 
 是的，PorkchopLite 支持指针！这允许你实现更多的功能，但也需要你更为小心，因为 Porkchop 没有虚拟机，一切的内存错误和泄露都是可能发生的！
 

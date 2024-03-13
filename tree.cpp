@@ -159,7 +159,7 @@ void IdExpr::walkBytecode(Assembler* assembler) const {
         case LocalContext::LookupResult::Scope::NONE:
             break;
         case LocalContext::LookupResult::Scope::LOCAL:
-            reg = assembler->load(lookup.index, getType());
+            reg = assembler->load(Assembler::regOf(lookup.index), getType());
             break;
         case LocalContext::LookupResult::Scope::GLOBAL:
             reg = assembler->loadglobal(compiler.of(token), getType());
@@ -167,12 +167,12 @@ void IdExpr::walkBytecode(Assembler* assembler) const {
     }
 }
 
-void IdExpr::walkStoreBytecode(size_t from, Assembler* assembler) const {
+void IdExpr::walkStoreBytecode(std::string const& from, Assembler* assembler) const {
     switch (lookup.scope) {
         case LocalContext::LookupResult::Scope::NONE:
             break;
         case LocalContext::LookupResult::Scope::LOCAL:
-            assembler->store(from, lookup.index, getType());
+            assembler->store(from, Assembler::regOf(lookup.index), getType());
             break;
         case LocalContext::LookupResult::Scope::GLOBAL:
             assembler->storeglobal(from, compiler.of(token), getType());
@@ -194,8 +194,8 @@ void IdExpr::ensureAssignable() const {
     }
 }
 
-size_t IdExpr::addressOf(Assembler *assembler) const {
-    return assembler->addressof(lookup.index, std::make_shared<PointerType>(getType()));
+std::string IdExpr::addressOf(Assembler *assembler) const {
+    return assembler->addressof(Assembler::regOf(lookup.index), std::make_shared<PointerType>(getType()));
 }
 
 TypeReference PrefixExpr::evalType(TypeReference const& infer) const {
@@ -290,8 +290,8 @@ void DereferenceExpr::walkBytecode(Assembler *assembler) const {
     reg = assembler->load(rhs->reg, ptr->E);
 }
 
-void DereferenceExpr::walkStoreBytecode(size_t from, Assembler *assembler) const {
-    size_t address = addressOf(assembler);
+void DereferenceExpr::walkStoreBytecode(std::string const& from, Assembler *assembler) const {
+    auto address = addressOf(assembler);
     assembler->store(from, address, getType());
 }
 
@@ -299,7 +299,7 @@ void DereferenceExpr::ensureAssignable() const {
 
 }
 
-size_t DereferenceExpr::addressOf(Assembler *assembler) const {
+std::string DereferenceExpr::addressOf(Assembler *assembler) const {
     rhs->walkBytecode(assembler);
     return rhs->reg;
 }
@@ -777,12 +777,12 @@ TypeReference AccessExpr::evalType(TypeReference const& infer) const {
 }
 
 void AccessExpr::walkBytecode(Assembler* assembler) const {
-    size_t index = addressOf(assembler);
+    auto index = addressOf(assembler);
     reg = assembler->load(index, getType());
 }
 
-void AccessExpr::walkStoreBytecode(size_t from, Assembler* assembler) const {
-    size_t index = addressOf(assembler);
+void AccessExpr::walkStoreBytecode(std::string const& from, Assembler* assembler) const {
+    auto index = addressOf(assembler);
     assembler->store(from, index, getType());
 }
 
@@ -790,10 +790,10 @@ void AccessExpr::ensureAssignable() const {
 
 }
 
-size_t AccessExpr::addressOf(Assembler *assembler) const {
+std::string AccessExpr::addressOf(Assembler *assembler) const {
     lhs->walkBytecode(assembler);
     rhs->walkBytecode(assembler);
-    size_t index = assembler->offset(lhs->reg, rhs->reg, getType());
+    auto index = assembler->offset(lhs->reg, rhs->reg, getType());
     return index;
 }
 
@@ -818,30 +818,29 @@ TypeReference InvokeExpr::evalType(TypeReference const& infer) const {
     lhs->expect("invocable type");
 }
 
-size_t InvokeExpr::walkBytecode(const Expr *lhs, const std::vector<const Expr *> &rhs, Assembler *assembler, const TypeReference& type) {
-    size_t reg = -1;
+std::string InvokeExpr::walkBytecode(const Expr *lhs, const std::vector<const Expr *> &rhs, Assembler *assembler, const TypeReference& type) {
+    std::string reg = "%error";
     lhs->walkBytecode(assembler);
     for (auto& e : rhs) {
         e->walkBytecode(assembler);
     }
     std::string call;
     if (!isNone(type) && !isNever(type)) {
-        reg = assembler->reg++;
-        call += "%";
-        call += std::to_string(reg);
+        reg = assembler->next();
+        call += reg;
         call += " = ";
     }
     call += "call ";
     call += type->serialize();
-    call += " %";
-    call += std::to_string(lhs->reg);
+    call += " ";
+    call += lhs->reg;
     call += "(";
     bool first = true;
     for (auto& e : rhs) {
         if (first) first = false; else call += ", ";
         call += e->getType()->serialize();
-        call += " %";
-        call += std::to_string(e->reg);
+        call += " ";
+        call += e->reg;
     }
     call += ")";
     assembler->append(call);
@@ -950,12 +949,12 @@ void IfElseExpr::walkBytecode(Assembler* assembler) const {
     reg = walkBytecode(cond.get(), lhs.get(), rhs.get(), compiler, assembler, getType());
 }
 
-size_t IfElseExpr::walkBytecode(Expr const* cond, Expr const* lhs, Expr const* rhs, Compiler& compiler, Assembler* assembler, const TypeReference& type) {
+std::string IfElseExpr::walkBytecode(Expr const* cond, Expr const* lhs, Expr const* rhs, Compiler& compiler, Assembler* assembler, const TypeReference& type) {
     size_t A = compiler.global->labelUntil++;
     size_t B = compiler.global->labelUntil++;
     size_t C = compiler.global->labelUntil++;
     bool store = type->equals(lhs->getType()) && type->equals(rhs->getType());
-    auto reg = store ? assembler->alloca_(type) : -1;
+    auto reg = store ? assembler->alloca_(type) : "%error";
     cond->walkBytecode(assembler);
     assembler->br(cond->reg, A, B);
     assembler->label(A);
@@ -1030,7 +1029,7 @@ void SimpleDeclarator::declare(LocalContext &context) const {
     name->initLookup(context);
 }
 
-void SimpleDeclarator::walkBytecode(size_t from, Assembler *assembler) const {
+void SimpleDeclarator::walkBytecode(std::string const& from, Assembler *assembler) const {
     name->walkStoreBytecode(from, assembler);
 }
 
