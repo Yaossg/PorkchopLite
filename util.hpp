@@ -8,14 +8,10 @@
 
 namespace Porkchop {
 
-inline bool isInvalidChar(int64_t value) {
-    return value < 0 || value > 0x10FFFFLL || 0xD800LL <= value && value <= 0xDFFFLL;
-}
-
 FILE* open(const char* filename, const char* mode);
 
 inline std::string readText(const char* filename) {
-    FILE* input_file = open(filename, "rb");
+    FILE* input_file = open(filename, "r");
     fseek(input_file, 0, SEEK_END);
     size_t size = ftell(input_file);
     fseek(input_file, 0, SEEK_SET);
@@ -23,29 +19,6 @@ inline std::string readText(const char* filename) {
     fread(fileBuffer.data(), 1, size, input_file);
     fclose(input_file);
     return fileBuffer;
-}
-
-inline std::vector<uint8_t> readBin(const char* filename) {
-    FILE* input_file = open(filename, "rb");
-    fseek(input_file, 0, SEEK_END);
-    size_t size = ftell(input_file);
-    fseek(input_file, 0, SEEK_SET);
-    std::vector<uint8_t> fileBuffer(size);
-    fread(fileBuffer.data(), 1, size, input_file);
-    fclose(input_file);
-    return fileBuffer;
-}
-
-inline std::string readLine(FILE* file) {
-    std::string line;
-    do {
-        char buf[256];
-        fgets(buf, sizeof buf, file);
-        line += buf;
-    } while (!line.ends_with('\n') && !feof(file));
-    if (line.ends_with('\n'))
-        line.pop_back();
-    return line;
 }
 
 inline void forceUTF8() {

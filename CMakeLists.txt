@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.21)
-project(Porkchop)
+project(PorkchopLite)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Porkchop
+add_executable(PorkchopLite
         main.cpp
         type.hpp token.hpp
         compiler.hpp compiler.cpp
