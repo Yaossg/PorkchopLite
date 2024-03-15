@@ -67,26 +67,23 @@ fn swap(x: *int, y: *int): none = {
 	*y = t;
 }
 
-fn min_element(a: *int, size: int, cmp: (int, int): bool): *int = {
-	let p = a
-	let i = 1
-	while i < size {
-		if cmp(a[i], *p) {
-			p = &a[i]
+fn min_element(p: *int, q: *int, cmp: (int, int): bool): *int = {
+	let m = p
+	while p != q {
+		if cmp(*p, *m) {
+			m = p
 		}
-		++i
+		++p
 	}
-	p
+	m
 }
 
-fn sort(a: *int, size: int, cmp: (int, int): bool): none = {
-	let i = 0
-	while i < size {
-		swap(&a[i], min_element(&a[i], size - i, cmp))
-		++i
+fn sort(p: *int, q: *int, cmp: (int, int): bool): none = {
+	while p != q {
+		swap(p, min_element(p, q, cmp))
+		++p
 	}
 }
-
 
 fn less(x: int, y: int) = x < y
 fn greater(x: int, y: int) = x > y
@@ -101,9 +98,9 @@ fn main() = {
 		++i
 	}
 	print_int_array(a, 10)
-	sort(a, 10, greater)
+	sort(a, a + 10, greater)
 	print_int_array(a, 10)
-	sort(a, 10, less)
+	sort(a, a + 10, less)
 	print_int_array(a, 10)
 	dealloc_int_array(a)
 }
@@ -134,84 +131,70 @@ L0:
     store i64 %10, i64* %11, align 8
     ret void
 }
-define i64* @min_element(i64* %0, i64 %1, ptr %2) {
+define i64* @min_element(i64* %0, i64* %1, ptr %2) {
 L0:
     %3 = alloca i64*, align 8
     store i64* %0, i64** %3, align 8
-    %4 = alloca i64, align 8
-    store i64 %1, i64* %4, align 8
+    %4 = alloca i64*, align 8
+    store i64* %1, i64** %4, align 8
     %5 = alloca ptr, align 8
     store ptr %2, ptr %5, align 8
     %6 = alloca i64*, align 8
-    %7 = alloca i64, align 8
-    %8 = load i64*, i64** %3, align 8
-    store i64* %8, i64** %6, align 8
-    store i64 1, i64* %7, align 8
+    %7 = load i64*, i64** %3, align 8
+    store i64* %7, i64** %6, align 8
     br label %L1
 L1:
-    %9 = load i64, i64* %7, align 8
-    %10 = load i64, i64* %4, align 8
-    %11 = icmp slt i64 %9, %10
-    br i1 %11, label %L2, label %L3
+    %8 = load i64*, i64** %3, align 8
+    %9 = load i64*, i64** %4, align 8
+    %10 = icmp ne i64* %8, %9
+    br i1 %10, label %L2, label %L3
 L2:
-    %12 = load ptr, ptr %5, align 8
-    %13 = load i64*, i64** %3, align 8
-    %14 = load i64, i64* %7, align 8
-    %15 = getelementptr inbounds i64, ptr %13, i64 %14
-    %16 = load i64, i64* %15, align 8
-    %17 = load i64*, i64** %6, align 8
-    %18 = load i64, i64* %17, align 8
-    %19 = call i1 %12(i64 %16, i64 %18)
-    br i1 %19, label %L4, label %L5
+    %11 = load ptr, ptr %5, align 8
+    %12 = load i64*, i64** %3, align 8
+    %13 = load i64, i64* %12, align 8
+    %14 = load i64*, i64** %6, align 8
+    %15 = load i64, i64* %14, align 8
+    %16 = call i1 %11(i64 %13, i64 %15)
+    br i1 %16, label %L4, label %L5
 L4:
-    %20 = load i64*, i64** %3, align 8
-    %21 = load i64, i64* %7, align 8
-    %22 = getelementptr inbounds i64, ptr %20, i64 %21
-    store i64* %22, i64** %6, align 8
+    %17 = load i64*, i64** %3, align 8
+    store i64* %17, i64** %6, align 8
     br label %L6
 L5:
     br label %L6
 L6:
-    %23 = load i64, i64* %7, align 8
-    %24 = add i64 %23, 1
-    store i64 %24, i64* %7, align 8
+    %18 = load i64*, i64** %3, align 8
+    %19 = getelementptr inbounds i64*, ptr %18, i64 1
+    store i64* %19, i64** %3, align 8
     br label %L1
 L3:
-    %25 = load i64*, i64** %6, align 8
-    ret i64* %25
+    %20 = load i64*, i64** %6, align 8
+    ret i64* %20
 }
-define void @sort(i64* %0, i64 %1, ptr %2) {
+define void @sort(i64* %0, i64* %1, ptr %2) {
 L0:
     %3 = alloca i64*, align 8
     store i64* %0, i64** %3, align 8
-    %4 = alloca i64, align 8
-    store i64 %1, i64* %4, align 8
+    %4 = alloca i64*, align 8
+    store i64* %1, i64** %4, align 8
     %5 = alloca ptr, align 8
     store ptr %2, ptr %5, align 8
-    %6 = alloca i64, align 8
-    store i64 0, i64* %6, align 8
     br label %L1
 L1:
-    %7 = load i64, i64* %6, align 8
-    %8 = load i64, i64* %4, align 8
-    %9 = icmp slt i64 %7, %8
-    br i1 %9, label %L2, label %L3
+    %6 = load i64*, i64** %3, align 8
+    %7 = load i64*, i64** %4, align 8
+    %8 = icmp ne i64* %6, %7
+    br i1 %8, label %L2, label %L3
 L2:
+    %9 = load i64*, i64** %3, align 8
     %10 = load i64*, i64** %3, align 8
-    %11 = load i64, i64* %6, align 8
-    %12 = getelementptr inbounds i64, ptr %10, i64 %11
-    %13 = load i64*, i64** %3, align 8
-    %14 = load i64, i64* %6, align 8
-    %15 = getelementptr inbounds i64, ptr %13, i64 %14
-    %16 = load i64, i64* %4, align 8
-    %17 = load i64, i64* %6, align 8
-    %18 = sub i64 %16, %17
-    %19 = load ptr, ptr %5, align 8
-    %20 = call i64* @min_element(i64* %15, i64 %18, ptr %19)
-    call void @swap(i64* %12, i64* %20)
-    %21 = load i64, i64* %6, align 8
-    %22 = add i64 %21, 1
-    store i64 %22, i64* %6, align 8
+    %11 = load i64*, i64** %4, align 8
+    %12 = load ptr, ptr %5, align 8
+    %13 = call i64* @min_element(i64* %10, i64* %11, ptr %12)
+    call void @swap(i64* %9, i64* %13)
+    %14 = load i64*, i64** %3, align 8
+    %15 = getelementptr inbounds i64*, ptr %14, i64 1
+    store i64* %15, i64** %3, align 8
     br label %L1
 L3:
     ret void
@@ -280,15 +263,19 @@ L3:
     %25 = load i64*, i64** %0, align 8
     call void @print_int_array(i64* %25, i64 10)
     %26 = load i64*, i64** %0, align 8
-    call void @sort(i64* %26, i64 10, ptr @greater)
     %27 = load i64*, i64** %0, align 8
-    call void @print_int_array(i64* %27, i64 10)
-    %28 = load i64*, i64** %0, align 8
-    call void @sort(i64* %28, i64 10, ptr @less)
+    %28 = getelementptr inbounds i64*, ptr %27, i64 10
+    call void @sort(i64* %26, i64* %28, ptr @greater)
     %29 = load i64*, i64** %0, align 8
     call void @print_int_array(i64* %29, i64 10)
     %30 = load i64*, i64** %0, align 8
-    call void @dealloc_int_array(i64* %30)
+    %31 = load i64*, i64** %0, align 8
+    %32 = getelementptr inbounds i64*, ptr %31, i64 10
+    call void @sort(i64* %30, i64* %32, ptr @less)
+    %33 = load i64*, i64** %0, align 8
+    call void @print_int_array(i64* %33, i64 10)
+    %34 = load i64*, i64** %0, align 8
+    call void @dealloc_int_array(i64* %34)
     ret void
 }
 ```
