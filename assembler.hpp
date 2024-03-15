@@ -86,10 +86,7 @@ struct Assembler {
         char buf[64];
         auto tn = type->serialize();
         if (dynamic_cast<FuncType*>(type.get())) {
-            auto index = alloca_(type);
-            sprintf(buf, "store ptr @%s, ptr %s, align 8", identifier.data(), index.data());
-            append(buf);
-            return loadptr(index);
+            return "@" + identifier.name;
         } else {
             auto index = next();
             sprintf(buf, "%s = load %s, ptr @%s, align 8", index.data(), tn.data(), identifier.data());
