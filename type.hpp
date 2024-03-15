@@ -162,7 +162,7 @@ struct PointerType : Type {
     [[nodiscard]] std::string_view descriptor() const noexcept override { return "*"; }
 
     [[nodiscard]] std::string serialize() const override {
-        return E->serialize() + '*';
+        return "ptr";
     }
 };
 

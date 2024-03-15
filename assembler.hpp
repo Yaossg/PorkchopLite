@@ -84,12 +84,12 @@ struct Assembler {
 
     [[nodiscard]] std::string loadglobal(Identifier identifier, const TypeReference& type) {
         char buf[64];
-        auto tn = type->serialize();
         if (dynamic_cast<FuncType*>(type.get())) {
             return "@" + identifier.name;
         } else {
             auto index = next();
-            sprintf(buf, "%s = load %s, ptr @%s, align 8", index.data(), tn.data(), identifier.data());
+            auto name = type->serialize();
+            sprintf(buf, "%s = load %s, ptr @%s, align 8", index.data(), name.data(), identifier.data());
             append(buf);
             return index;
         }
@@ -97,8 +97,8 @@ struct Assembler {
 
     void storeglobal(std::string const& from, Identifier identifier, const TypeReference& type) {
         char buf[64];
-        auto tn = type->serialize();
-        sprintf(buf, "store %s %s, %s* @%s, align 8", tn.data(), from.data(), tn.data(), identifier.data());
+        auto name = type->serialize();
+        sprintf(buf, "store %s %s, ptr @%s, align 8", name.data(), from.data(), identifier.data());
         append(buf);
     }
 
@@ -129,17 +129,15 @@ struct Assembler {
 
     [[nodiscard]] std::string loadptr(std::string const& from) {
         char buf[64];
-        auto name = "ptr";
         auto index = next();
-        sprintf(buf, "%s = load %s, %s %s, align 8", index.data(), name, name, from.data());
+        sprintf(buf, "%s = load ptr, ptr %s, align 8", index.data(), from.data());
         append(buf);
         return index;
     }
 
     void storeptr(std::string const& from, std::string const& into) {
         char buf[64];
-        auto name = "ptr";
-        sprintf(buf, "store %s %s, %s %s, align 8", name, from.data(), name, into.data());
+        sprintf(buf, "store ptr %s, ptr %s, align 8", from.data(), into.data());
         append(buf);
     }
 
@@ -156,7 +154,7 @@ struct Assembler {
         char buf[64];
         auto name = type->serialize();
         auto index = next();
-        sprintf(buf, "%s = load %s, %s* %s, align 8", index.data(), name.data(), name.data(), from.data());
+        sprintf(buf, "%s = load %s, ptr %s, align 8", index.data(), name.data(), from.data());
         append(buf);
         return index;
     }
@@ -167,7 +165,7 @@ struct Assembler {
         }
         char buf[64];
         auto name = type->serialize();
-        sprintf(buf, "store %s %s, %s* %s, align 8", name.data(), from.data(), name.data(), into.data());
+        sprintf(buf, "store %s %s, ptr %s, align 8", name.data(), from.data(), into.data());
         append(buf);
     }
 
