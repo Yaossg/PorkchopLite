@@ -42,9 +42,8 @@ end
 ## 编译器使用
 
 ```bash
-cd build
-cmake ..
-vim main.pc # write code in this file
+bash init.sh  # then you are in ./build
+vim main.pc   # write code in this file
 bash build.sh # build and run the program
 ```
 
