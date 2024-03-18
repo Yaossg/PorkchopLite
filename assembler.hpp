@@ -23,20 +23,20 @@ struct Assembler {
         char buf[64];
         auto index = next();
         auto name = type->serialize();
-        sprintf(buf, "%s = alloca %s, align 8", index.data(), name.data());
+        sprintf(buf, "%s = alloca %s", index.data(), name.data());
         append(buf);
         return index;
     }
 
-    [[nodiscard]] std::string const_(bool b) {
+    [[nodiscard]] static std::string const_(bool b) {
         return b ? "0" : "1";
     }
 
-    [[nodiscard]] std::string const_(int64_t i) {
+    [[nodiscard]] static std::string const_(int64_t i) {
         return std::to_string(i);
     }
 
-    [[nodiscard]] std::string const_(double d) {
+    [[nodiscard]] static std::string const_(double d) {
         return std::to_string(d);
     }
 
@@ -70,15 +70,10 @@ struct Assembler {
         }
     };
 
-    void global(Identifier identifier, int64_t i) {
+    void global(Identifier identifier, const TypeReference& type, std::string const& initial) {
         char buf[64];
-        sprintf(buf, "@%s = global i64 %ld, align 8", identifier.data(), i);
-        append(buf);
-    }
-
-    void global(Identifier identifier, double d) {
-        char buf[64];
-        sprintf(buf, "@%s = global double %e, align 8", identifier.data(), d);
+        auto name = type->serialize();
+        sprintf(buf, "@%s = global %s %s", identifier.data(), name.data(), initial.data());
         append(buf);
     }
 
@@ -89,7 +84,7 @@ struct Assembler {
         } else {
             auto index = next();
             auto name = type->serialize();
-            sprintf(buf, "%s = load %s, ptr @%s, align 8", index.data(), name.data(), identifier.data());
+            sprintf(buf, "%s = load %s, ptr @%s", index.data(), name.data(), identifier.data());
             append(buf);
             return index;
         }
@@ -98,17 +93,8 @@ struct Assembler {
     void storeglobal(std::string const& from, Identifier identifier, const TypeReference& type) {
         char buf[64];
         auto name = type->serialize();
-        sprintf(buf, "store %s %s, ptr @%s, align 8", name.data(), from.data(), identifier.data());
+        sprintf(buf, "store %s %s, ptr @%s", name.data(), from.data(), identifier.data());
         append(buf);
-    }
-
-    [[nodiscard]] std::string local(const TypeReference& type) {
-        char buf[64];
-        auto name = type->serialize();
-        auto index = next();
-        sprintf(buf, "%s = alloca %s, align 8", index.data(), name.data());
-        append(buf);
-        return index;
     }
 
     [[nodiscard]] std::string f2i(std::string const& from) {
@@ -127,45 +113,19 @@ struct Assembler {
         return index;
     }
 
-    [[nodiscard]] std::string loadptr(std::string const& from) {
-        char buf[64];
-        auto index = next();
-        sprintf(buf, "%s = load ptr, ptr %s, align 8", index.data(), from.data());
-        append(buf);
-        return index;
-    }
-
-    void storeptr(std::string const& from, std::string const& into) {
-        char buf[64];
-        sprintf(buf, "store ptr %s, ptr %s, align 8", from.data(), into.data());
-        append(buf);
-    }
-
-    [[nodiscard]] std::string addressof(std::string const& from, const TypeReference& type) {
-        auto index = alloca_(type);
-        storeptr(from, index);
-        return index;
-    }
-
     [[nodiscard]] std::string load(std::string const& from, const TypeReference& type) {
-        if (dynamic_cast<FuncType*>(type.get())) {
-            return loadptr(from);
-        }
         char buf[64];
         auto name = type->serialize();
         auto index = next();
-        sprintf(buf, "%s = load %s, ptr %s, align 8", index.data(), name.data(), from.data());
+        sprintf(buf, "%s = load %s, ptr %s", index.data(), name.data(), from.data());
         append(buf);
         return index;
     }
 
     void store(std::string const& from, std::string const& into, const TypeReference& type) {
-        if (dynamic_cast<FuncType*>(type.get())) {
-            return storeptr(from, into);
-        }
         char buf[64];
         auto name = type->serialize();
-        sprintf(buf, "store %s %s, ptr %s, align 8", name.data(), from.data(), into.data());
+        sprintf(buf, "store %s %s, ptr %s", name.data(), from.data(), into.data());
         append(buf);
     }
 
@@ -181,8 +141,7 @@ struct Assembler {
 
     [[nodiscard]] std::string neg(std::string const& rhs, const TypeReference& type) {
         if (isInt(type)) {
-            auto zero = const_(0L);
-            return infix("sub", zero, rhs, type);
+            return infix("sub", "0", rhs, type);
         } else {
             char buf[64];
             auto name = type->serialize();

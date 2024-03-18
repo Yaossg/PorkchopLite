@@ -13,7 +13,7 @@ pc_none printint(pc_int value) {
 }
 
 pc_none printfloat(pc_float value) {
-    printf("%.6f\n", value);
+    printf("%f\n", value);
 }
 
 pc_none print_int_array(pc_int* array, pc_int size) {
@@ -26,7 +26,7 @@ pc_none print_int_array(pc_int* array, pc_int size) {
 pc_never exit(int);
 
 pc_int* alloc_int_array(pc_int size) {
-    return aligned_alloc(8, sizeof(pc_int) * size);
+    return calloc(size, sizeof(pc_int));
 }
 
 pc_none dealloc_int_array(pc_int* array) {

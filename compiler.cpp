@@ -39,10 +39,14 @@ void Compiler::compileLet(LetExpr *let, Assembler *assembler) const {
     auto initial = let->initializer->requireConst();
     auto type = let->initializer->getType();
     std::string_view name(of(let->declarator->name->token));
-    if (isInt(type)) {
-        assembler->global(name, initial.$int);
+    if (isBool(type)) {
+        assembler->global(name, type, assembler->const_(initial.$bool));
+    } else if (isInt(type)) {
+        assembler->global(name, type, assembler->const_(initial.$int));
+    } else if (isFloat(type)) {
+        assembler->global(name, type, assembler->const_(initial.$float));
     } else {
-        assembler->global(name, initial.$float);
+        raise("PorkchopLite does not support let of none type", let->segment());
     }
 }
 
@@ -75,7 +79,7 @@ void Compiler::compileFn(FunctionDeclarator* fn, Assembler* assembler) const {
         assembler->label(global->labelUntil++);
         size_t param = 0;
         for (auto&& local : definition->locals) {
-            auto reg = assembler->local(local);
+            auto reg = assembler->alloca_(local);
             if (param < index) {
                 assembler->store(Assembler::regOf(param), reg, fn->parameters->prototype->P[param]);
                 ++param;

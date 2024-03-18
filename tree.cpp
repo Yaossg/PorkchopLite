@@ -195,7 +195,7 @@ void IdExpr::ensureAssignable() const {
 }
 
 std::string IdExpr::addressOf(Assembler *assembler) const {
-    return assembler->addressof(Assembler::regOf(lookup.index), std::make_shared<PointerType>(getType()));
+    return Assembler::regOf(lookup.index);
 }
 
 TypeReference PrefixExpr::evalType(TypeReference const& infer) const {
@@ -510,8 +510,7 @@ void InfixExpr::walkBytecode(Assembler* assembler) const {
 TypeReference CompareExpr::evalType(TypeReference const& infer) const {
     matchOperands(lhs.get(), rhs.get());
     auto type = lhs->getType();
-    bool equality = token.type == TokenType::OP_EQ
-            || token.type == TokenType::OP_NE;
+    bool equality = token.type == TokenType::OP_EQ || token.type == TokenType::OP_NE;
     if (auto scalar = dynamic_cast<ScalarType*>(type.get())) {
         switch (scalar->S) {
             case ScalarTypeKind::NONE:
@@ -521,8 +520,8 @@ TypeReference CompareExpr::evalType(TypeReference const& infer) const {
             case ScalarTypeKind::NEVER:
                 lhs->neverGonnaGiveYouUp("in relational operations");
         }
-    } else if (!equality) {
-        raise("compound types only support equality operators", segment());
+    } else if (dynamic_cast<FuncType*>(type.get()) && !equality) {
+        raise("function type only support equality operators", segment());
     }
     return ScalarTypes::BOOL;
 }
@@ -566,6 +565,7 @@ void CompareExpr::walkBytecode(Assembler *assembler) const {
     rhs->walkBytecode(assembler);
     const char* op1 = "", *op2 = "";
     if (!isFloat(lhs->getType())) {
+        bool pt = dynamic_cast<PointerType*>(type.get());
         op1 = "icmp";
         switch (token.type) {
             case TokenType::OP_EQ:
@@ -575,16 +575,16 @@ void CompareExpr::walkBytecode(Assembler *assembler) const {
                 op2 = "ne";
                 break;
             case TokenType::OP_LT:
-                op2 = "slt";
+                op2 = pt ? "ult" : "slt";
                 break;
             case TokenType::OP_LE:
-                op2 = "sle";
+                op2 = pt ? "ule" : "sle";
                 break;
             case TokenType::OP_GT:
-                op2 = "sgt";
+                op2 = pt ? "ugt" : "sgt";
                 break;
             case TokenType::OP_GE:
-                op2 = "sge";
+                op2 = pt ? "uge" : "sge";
                 break;
             default:
                 unreachable();
@@ -953,18 +953,18 @@ std::string IfElseExpr::walkBytecode(Expr const* cond, Expr const* lhs, Expr con
     size_t A = compiler.global->labelUntil++;
     size_t B = compiler.global->labelUntil++;
     size_t C = compiler.global->labelUntil++;
-    bool store = type->equals(lhs->getType()) && type->equals(rhs->getType());
+    bool store = !isNone(type);
     auto reg = store ? assembler->alloca_(type) : "%error";
     cond->walkBytecode(assembler);
     assembler->br(cond->reg, A, B);
     assembler->label(A);
     lhs->walkBytecode(assembler);
-    if (store) assembler->store(lhs->reg, reg, type);
+    if (store && !isNever(lhs->getType())) assembler->store(lhs->reg, reg, type);
     if (!isNever(lhs->getType()))
         assembler->br(C);
     assembler->label(B);
     rhs->walkBytecode(assembler);
-    if (store) assembler->store(rhs->reg, reg, type);
+    if (store && !isNever(rhs->getType())) assembler->store(rhs->reg, reg, type);
     if (!isNever(rhs->getType()))
         assembler->br(C);
     assembler->label(C);
@@ -1034,6 +1034,8 @@ void SimpleDeclarator::walkBytecode(std::string const& from, Assembler *assemble
 }
 
 TypeReference LetExpr::evalType(TypeReference const& infer) const {
+    if (isNone(declarator->typeCache))
+        raise("PorkchopLite does not support let of none type", segment());
     return declarator->typeCache;
 }
 
