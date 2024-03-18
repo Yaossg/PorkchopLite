@@ -42,14 +42,17 @@ end
 ## 编译器使用
 
 ```bash
-bash init.sh  # then you are in ./build
-vim main.pc   # write code in this file
-bash build.sh # build and run the program
+git clone https://github.com/Yaossg/PorkchopLite.git
+cd PorkchopLite
+bash init.sh
+cd build
+vim main.pc     # write code in this file
+bash build.sh   # build and run the program
 ```
 
 产生的 `out.ll` 文件还可以根据需要自行编译成汇编或可执行文件。
 
-如果需要额外添加外部函数，可以编辑 `lib/lib.c` 并在 `main.pc` 文件开头添加对应的函数声明。
+如果需要使用外部函数，可以编辑 `lib/lib.c` 并在 `main.pc` 文件开头添加对应的函数声明。
 
 ## 示例代码片段
 
