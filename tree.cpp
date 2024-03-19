@@ -154,6 +154,10 @@ TypeReference IdExpr::evalType(TypeReference const& infer) const {
     return lookup.type;
 }
 
+void SizeofExpr::walkBytecode(Porkchop::Assembler *assembler) const {
+    reg = assembler->const_(type->size());
+}
+
 void IdExpr::walkBytecode(Assembler* assembler) const {
     switch (lookup.scope) {
         case LocalContext::LookupResult::Scope::NONE:
@@ -255,13 +259,11 @@ void PrefixExpr::walkBytecode(Assembler* assembler) const {
             break;
         }
         case TokenType::OP_NOT: {
-            auto index = assembler->const_(true);
-            reg = assembler->infix("xor", index, rhs->reg, getType());
+            reg = assembler->infix("xor", "1", rhs->reg, getType());
             break;
         }
         case TokenType::OP_INV: {
-            auto index = assembler->const_(-1L);
-            reg = assembler->infix("xor", index, rhs->reg, getType());
+            reg = assembler->infix("xor", "-1", rhs->reg, getType());
             break;
         }
         default:
@@ -270,6 +272,7 @@ void PrefixExpr::walkBytecode(Assembler* assembler) const {
 }
 
 TypeReference AddressOfExpr::evalType(const TypeReference &infer) const {
+    rhs->neverGonnaGiveYouUp("to take address");
     return std::make_shared<PointerType>(rhs->getType());
 }
 
@@ -279,6 +282,9 @@ void AddressOfExpr::walkBytecode(Assembler *assembler) const {
 
 TypeReference DereferenceExpr::evalType(const TypeReference &infer) const {
     if (auto ptr = dynamic_cast<PointerType*>(rhs->getType().get())) {
+        if (isNone(ptr->E)) {
+            raise("none* is not allowed to dereference", segment());
+        }
         return ptr->E;
     }
     rhs->expect("pointer type");
@@ -307,7 +313,7 @@ std::string DereferenceExpr::addressOf(Assembler *assembler) const {
 TypeReference StatefulPrefixExpr::evalType(TypeReference const& infer) const {
     rhs->ensureAssignable();
     auto type = rhs->getType();
-    if (!isInt(type) && !dynamic_cast<PointerType*>(type.get())) {
+    if (!isInt(type) && !isPointer(type)) {
         rhs->expect("int or pointer type");
     }
     return type;
@@ -328,7 +334,7 @@ void StatefulPrefixExpr::walkBytecode(Assembler* assembler) const {
 TypeReference StatefulPostfixExpr::evalType(TypeReference const& infer) const {
     lhs->ensureAssignable();
     auto type = lhs->getType();
-    if (!isInt(type) && !dynamic_cast<PointerType*>(type.get())) {
+    if (!isInt(type) && !isPointer(type)) {
         lhs->expect("int or pointer type");
     }
     return type;
@@ -336,22 +342,24 @@ TypeReference StatefulPostfixExpr::evalType(TypeReference const& infer) const {
 
 void StatefulPostfixExpr::walkBytecode(Assembler* assembler) const {
     auto one = assembler->const_(token.type == TokenType::OP_INC ? 1L : -1L);
-    lhs->walkBytecode(assembler);
     auto type = lhs->getType();
-    auto tmp = assembler->alloca_(type);
-    assembler->store(lhs->reg, tmp, type);
-    reg = assembler->load(tmp, type);
-    if (isInt(type)) {
-        reg = assembler->infix("add", reg, one, type);
-    } else {
-        reg = assembler->offset(reg, one, type);
-    }
-    lhs->walkStoreBytecode(reg, assembler);
-    reg = assembler->load(tmp, type);
+    lhs->walkBytecode(assembler);
+    lhs->walkStoreBytecode(
+            isInt(type)
+            ? assembler->infix("add", lhs->reg, one, type)
+            : assembler->offset(lhs->reg, one, type),
+            assembler);
+    reg = lhs->reg;
 }
 
 TypeReference InfixExpr::evalType(TypeReference const& infer) const {
     auto type1 = lhs->getType(), type2 = rhs->getType();
+    if (auto ptr = dynamic_cast<PointerType*>(type1.get()); ptr && token.type == TokenType::OP_SUB && type1->equals(type2)) {
+        if (isNone(ptr->E)) {
+            raise("none* cannot get involved in pointer arithmetics", segment());
+        }
+        return ScalarTypes::INT;
+    }
     switch (token.type) {
         case TokenType::OP_OR:
         case TokenType::OP_XOR:
@@ -366,11 +374,17 @@ TypeReference InfixExpr::evalType(TypeReference const& infer) const {
             rhs->expect(ScalarTypes::INT);
             return type1;
         case TokenType::OP_ADD:
-            if (isInt(type1) && dynamic_cast<PointerType*>(type2.get())) {
+            if (auto ptr = dynamic_cast<PointerType*>(type2.get()); ptr && isInt(type1)) {
+                if (isNone(ptr->E)) {
+                    raise("none* cannot get involved in pointer arithmetics", segment());
+                }
                 return type2;
             }
         case TokenType::OP_SUB:
-            if (isInt(type2) && dynamic_cast<PointerType*>(type1.get())) {
+            if (auto ptr = dynamic_cast<PointerType*>(type1.get()); ptr && isInt(type2)) {
+                if (isNone(ptr->E)) {
+                    raise("none* cannot get involved in pointer arithmetics", segment());
+                }
                 return type1;
             }
         case TokenType::OP_MUL:
@@ -458,6 +472,14 @@ void InfixExpr::walkBytecode(Assembler* assembler) const {
     rhs->walkBytecode(assembler);
     bool i = isInt(lhs->getType());
     auto type1 = lhs->getType(), type2 = rhs->getType();
+    if (auto ptr = dynamic_cast<PointerType*>(type1.get()); ptr && token.type == TokenType::OP_SUB && type1->equals(type2)) {
+        auto ptr1 = assembler->cast("ptrtoint", lhs->reg, type1, ScalarTypes::INT);
+        auto ptr2 = assembler->cast("ptrtoint", rhs->reg, type2, ScalarTypes::INT);
+        auto sub = assembler->infix("sub", ptr1, ptr2, ScalarTypes::INT);
+        auto sdiv = assembler->infix("sdiv", sub, assembler->const_(ptr->E->size()), ScalarTypes::INT);
+        reg = sdiv;
+        return;
+    }
     switch (token.type) {
         case TokenType::OP_OR:
             reg = assembler->infix("or", lhs->reg, rhs->reg, getType());
@@ -478,16 +500,16 @@ void InfixExpr::walkBytecode(Assembler* assembler) const {
             reg = assembler->infix("lshr", lhs->reg, rhs->reg, getType());
             break;
         case TokenType::OP_ADD:
-            if (isInt(type1) && dynamic_cast<PointerType*>(type2.get())) {
+            if (isInt(type1) && isPointer(type2)) {
                 reg = assembler->offset(rhs->reg, lhs->reg, getType());
-            } else if (isInt(type2) && dynamic_cast<PointerType*>(type1.get())) {
+            } else if (isInt(type2) && isPointer(type1)) {
                 reg = assembler->offset(lhs->reg, rhs->reg, getType());
             } else {
                 reg = assembler->infix(i ? "add" : "fadd", lhs->reg, rhs->reg, getType());
             }
             break;
         case TokenType::OP_SUB:
-            if (isInt(type2) && dynamic_cast<PointerType*>(type1.get())) {
+            if (isInt(type2) && isPointer(type1)) {
                 reg = assembler->offset(lhs->reg, assembler->neg(rhs->reg, rhs->getType()), getType());
             } else {
                 reg = assembler->infix(i ? "sub" : "fsub", lhs->reg, rhs->reg, getType());
@@ -565,7 +587,7 @@ void CompareExpr::walkBytecode(Assembler *assembler) const {
     rhs->walkBytecode(assembler);
     const char* op1 = "", *op2 = "";
     if (!isFloat(lhs->getType())) {
-        bool pt = dynamic_cast<PointerType*>(type.get());
+        bool pt = isPointer(type);
         op1 = "icmp";
         switch (token.type) {
             case TokenType::OP_EQ:
@@ -694,7 +716,7 @@ TypeReference AssignExpr::evalType(TypeReference const& infer) const {
             return type1;
         case TokenType::OP_ASSIGN_ADD:
         case TokenType::OP_ASSIGN_SUB:
-            if (auto ptr = dynamic_cast<PointerType*>(type1.get())) {
+            if (isPointer(type1)) {
                 rhs->expect(ScalarTypes::INT);
                 return type1;
             }
@@ -717,7 +739,7 @@ void AssignExpr::walkBytecode(Assembler* assembler) const {
         lhs->walkBytecode(assembler);
         rhs->walkBytecode(assembler);
         bool i = isInt(lhs->getType());
-        bool p = dynamic_cast<PointerType*>(lhs->getType().get());
+        bool p = isPointer(lhs->getType());
         switch (token.type) {
             case TokenType::OP_ASSIGN_OR:
                 reg = assembler->infix("or", lhs->reg, rhs->reg, getType());
@@ -861,7 +883,7 @@ void InvokeExpr::walkBytecode(Assembler* assembler) const {
 TypeReference AsExpr::evalType(TypeReference const& infer) const {
     auto type = lhs->getType(T);
     if (T->assignableFrom(type)
-        || isSimilar(isArithmetic, type, T)) return T;
+        || isSimilar(isArithmetic, type, T) || isSimilar(isPointerLike, type, T)) return T;
     Error().with(
             ErrorMessage().error(segment())
             .text("cannot cast this expression from").type(type).text("to").type(T)
@@ -885,15 +907,27 @@ std::optional<$union> AsExpr::evalConst() const {
 
 void AsExpr::walkBytecode(Assembler* assembler) const {
     lhs->walkBytecode(assembler);
-    if (lhs->getType()->equals(T)) return;
-    if (isNone(T)) {
-    } else if (isInt(lhs->getType())) {
+    auto type = lhs->getType();
+    if (isNone(T)) return;
+    if (type->equals(T)) {
+        reg = lhs->reg;
+        return;
+    }
+    if (isInt(type)) {
         if (isFloat(T)) {
-            reg = assembler->i2f(lhs->reg);
+            reg = assembler->cast("sitofp", lhs->reg, type, T);
+        } else if (isPointer(T)) {
+            reg = assembler->cast("inttoptr", lhs->reg, type, T);
         }
-    } else if (isInt(T)) {
-        if (isFloat(lhs->getType())) {
-            reg = assembler->f2i(lhs->reg);
+    } else if (isPointer(type)) {
+        if (isInt(T)) {
+            reg = assembler->cast("ptrtoint", lhs->reg, type, T);
+        } else if (isPointer(T)) {
+            reg = lhs->reg;
+        }
+    } else if (isFloat(type)) {
+        if (isInt(T)) {
+            reg = assembler->cast("fptosi", lhs->reg, type, T);
         }
     }
 }

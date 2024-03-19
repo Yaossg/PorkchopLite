@@ -24,6 +24,7 @@ enum class TokenType {
     KW_RETURN,
     KW_AS,
     KW_LET,
+    KW_SIZEOF,
 
     LPAREN,
     RPAREN,
@@ -96,6 +97,7 @@ const std::unordered_map<std::string_view, TokenType> KEYWORDS {
     {"return", TokenType::KW_RETURN},
     {"as", TokenType::KW_AS},
     {"let", TokenType::KW_LET},
+    {"sizeof", TokenType::KW_SIZEOF},
 };
 
 const std::unordered_map<std::string_view, TokenType> PUNCTUATIONS {

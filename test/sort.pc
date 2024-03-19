@@ -1,0 +1,48 @@
+fn alloc(size: int): *none
+fn dealloc(array: *none): none
+fn print_int_array(array: *int, size: int): none
+
+fn swap(x: *int, y: *int): none = {
+	let t = *x;
+	*x = *y;
+	*y = t;
+}
+
+
+fn min_element(p: *int, q: *int, cmp: (int, int): bool): *int = {
+	let m = p
+	while p != q {
+		if cmp(*p, *m) {
+			m = p
+		}
+		++p
+	}
+	m
+}
+
+fn sort(p: *int, q: *int, cmp: (int, int): bool): none = {
+	while p != q {
+		swap(p, min_element(p, q, cmp))
+		++p
+	}
+}
+
+fn less(x: int, y: int) = x < y
+fn greater(x: int, y: int) = x > y
+
+fn main() = {
+	let a = alloc(10 * sizeof(int)) as *int
+	a[0] = 1
+	a[1] = 2
+	let i = 2
+	while i < 10 {
+		a[i] = a[i - 1] + a[i - 2]
+		++i
+	}
+	print_int_array(a, 10)
+	sort(a, a + 10, greater)
+	print_int_array(a, 10)
+	sort(a, a + 10, less)
+	print_int_array(a, 10)
+	dealloc(a as *none)
+}

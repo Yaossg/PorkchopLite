@@ -90,18 +90,10 @@ struct Assembler {
         return store(from, identifier.name, type);
     }
 
-    [[nodiscard]] std::string f2i(std::string const& from) {
+    [[nodiscard]] std::string cast(const char* op, std::string const& from, const TypeReference& type1, const TypeReference& type2) {
         char buf[64];
         auto index = next();
-        sprintf(buf, "%s = fptosi double %s to i64", index.data(), from.data());
-        append(buf);
-        return index;
-    }
-
-    [[nodiscard]] std::string i2f(std::string const& from) {
-        char buf[64];
-        auto index = next();
-        sprintf(buf, "%s = sitofp i64 %s to double", index.data(), from.data());
+        sprintf(buf, "%s = %s %s %s to %s", index.data(), op, type1->serialize().data(), from.data(), type2->serialize().data());
         append(buf);
         return index;
     }

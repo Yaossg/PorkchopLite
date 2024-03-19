@@ -153,6 +153,13 @@ ExprHandle Parser::parseExpression(Expr::Level level) {
                         raise("assignable expression is expected", segment);
                     }
                 }
+                case TokenType::KW_SIZEOF: {
+                    next();
+                    expect(TokenType::LPAREN, "(");
+                    auto type = parseType();
+                    expect(TokenType::RPAREN, ")");
+                    return make<SizeofExpr>(std::move(type), range(token, rewind()));
+                }
                 default: {
                     return parseExpression(Expr::upper(level));
                 }
@@ -438,7 +445,7 @@ TypeReference Parser::parseType() {
             raise("a type is expected", token);
         case TokenType::OP_MUL: {
             auto E = parseType();
-            neverGonnaGiveYouUp(E, "as a list element", rewind());
+            neverGonnaGiveYouUp(E, "to take address", rewind());
             return std::make_shared<PointerType>(E);
         }
         case TokenType::LPAREN: {

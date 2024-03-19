@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <utility>
 
 #include "local.hpp"
 
@@ -150,6 +151,26 @@ struct FloatConstExpr : ConstExpr {
     [[nodiscard]] std::optional<$union> evalConst() const override;
 
     void walkBytecode(Assembler* assembler) const override;
+};
+
+struct SizeofExpr : Expr {
+    TypeReference type;
+    Segment seg;
+
+    SizeofExpr(Compiler& compiler, TypeReference type, Segment seg): Expr(compiler), type(std::move(type)), seg(seg) {}
+
+    TypeReference evalType(const Porkchop::TypeReference &infer) const override { return ScalarTypes::INT; }
+
+    std::optional<$union> evalConst() const override { return type->size(); }
+
+    void walkBytecode(Porkchop::Assembler *assembler) const override;
+
+    [[nodiscard]] std::string_view descriptor() const noexcept override { return "sizeof"; }
+    [[nodiscard]] std::vector<const Descriptor *> children() const override { return {type.get()}; }
+
+    [[nodiscard]] Segment segment() const override {
+        return seg;
+    }
 };
 
 struct AssignableExpr : Expr {

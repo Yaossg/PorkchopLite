@@ -1,0 +1,22 @@
+fn alloc(size: int): *none
+fn dealloc(array: *none): none
+fn printint(value: int): none
+fn printfloat(value: float): none
+
+fn main() = {
+	let pi = 3.14
+	let three = pi as int
+	let three_dot_zero = three as float
+	printfloat(pi)
+	printint(three)
+	printfloat(three_dot_zero)
+	printint( ((&three) as int - (&three_dot_zero) as int) )
+	printint( *((&three_dot_zero) as *int) )
+	printint( *((&three) as int as *int) )
+	let array = alloc(sizeof(int) * 10) as *int
+	let p = array + 3
+	let q = array + 8
+	printint(p - q)
+	dealloc(array as *none)
+	0
+}

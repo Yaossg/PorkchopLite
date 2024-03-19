@@ -53,10 +53,10 @@ void Compiler::compileLet(LetExpr *let, Assembler *assembler) const {
 void Compiler::compileFn(FunctionDeclarator* fn, Assembler* assembler) const {
     auto definition = fn->definition.get();
     std::string declare(definition ? "define" : "declare");
-    declare +=" ";
+    declare += " ";
     declare += fn->parameters->prototype->R->serialize();
-    declare += " @";
-    declare += of(fn->name->token);
+    declare += " ";
+    declare += Assembler::Identifier(of(fn->name->token)).data();
     declare += "(";
     size_t index = 0;
     for (auto&& param : fn->parameters->prototype->P) {
@@ -64,8 +64,8 @@ void Compiler::compileFn(FunctionDeclarator* fn, Assembler* assembler) const {
             declare += ", ";
         }
         declare += param->serialize();
-        declare += " %";
-        declare += std::to_string(index++);
+        declare += " ";
+        declare += Assembler::regOf(index++);
     }
     declare += ")";
     if (definition) {

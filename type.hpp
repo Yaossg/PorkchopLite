@@ -43,6 +43,14 @@ const std::unordered_map<std::string_view, ScalarTypeKind> SCALAR_TYPES {
     {"float",  ScalarTypeKind::FLOAT},
 };
 
+constexpr int64_t SIZEOF_SCALAR[] = {
+        0,
+        0,
+        1,
+        8,
+        8
+};
+
 struct Type : Descriptor {
     [[nodiscard]] virtual std::string toString() const = 0;
     [[nodiscard]] virtual bool equals(const TypeReference& type) const noexcept = 0;
@@ -50,6 +58,7 @@ struct Type : Descriptor {
         return equals(type);
     }
     [[nodiscard]] virtual std::string serialize() const = 0;
+    [[nodiscard]] virtual int64_t size() const = 0;
 };
 
 [[nodiscard]] inline bool isNever(TypeReference const& type) noexcept;
@@ -89,6 +98,10 @@ struct ScalarType : Type {
 
     [[nodiscard]] std::string serialize() const override {
         return std::string{SCALAR_TYPE_DESC[(size_t) S]};
+    }
+
+    [[nodiscard]] int64_t size() const override {
+        return SIZEOF_SCALAR[(size_t) S];
     }
 };
 
@@ -164,7 +177,20 @@ struct PointerType : Type {
     [[nodiscard]] std::string serialize() const override {
         return "ptr";
     }
+
+    [[nodiscard]] int64_t size() const override {
+        return 8;
+    }
 };
+
+
+[[nodiscard]] inline bool isPointer(TypeReference const& type) noexcept {
+    return dynamic_cast<PointerType*>(type.get());
+}
+
+[[nodiscard]] inline bool isPointerLike(TypeReference const& type) noexcept {
+    return isPointer(type) || isInt(type);
+}
 
 struct FuncType : Type {
     std::vector<TypeReference> P;
@@ -214,6 +240,10 @@ struct FuncType : Type {
 
     [[nodiscard]] std::string serialize() const override {
         return "ptr";
+    }
+
+    [[nodiscard]] int64_t size() const override {
+        return 8;
     }
 };
 
