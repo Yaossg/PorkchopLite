@@ -51,8 +51,9 @@ struct Assembler {
                     break;
                 }
             }
+            name = "@";
             if (simple) {
-                name.assign(source);
+                name += source;
             } else {
                 name += '"';
                 for (char ch : source) {
@@ -65,36 +66,28 @@ struct Assembler {
             }
         }
 
-        const char* data() const {
+        [[nodiscard]] const char* data() const {
             return name.c_str();
         }
     };
 
-    void global(Identifier identifier, const TypeReference& type, std::string const& initial) {
+    void global(Identifier const& identifier, const TypeReference& type, std::string const& initial) {
         char buf[64];
         auto name = type->serialize();
-        sprintf(buf, "@%s = global %s %s", identifier.data(), name.data(), initial.data());
+        sprintf(buf, "%s = global %s %s", identifier.data(), name.data(), initial.data());
         append(buf);
     }
 
-    [[nodiscard]] std::string loadglobal(Identifier identifier, const TypeReference& type) {
-        char buf[64];
+    [[nodiscard]] std::string loadglobal(Identifier const& identifier, const TypeReference& type) {
         if (dynamic_cast<FuncType*>(type.get())) {
-            return "@" + identifier.name;
+            return identifier.name;
         } else {
-            auto index = next();
-            auto name = type->serialize();
-            sprintf(buf, "%s = load %s, ptr @%s", index.data(), name.data(), identifier.data());
-            append(buf);
-            return index;
+            return load(identifier.name, type);
         }
     }
 
-    void storeglobal(std::string const& from, Identifier identifier, const TypeReference& type) {
-        char buf[64];
-        auto name = type->serialize();
-        sprintf(buf, "store %s %s, ptr @%s", name.data(), from.data(), identifier.data());
-        append(buf);
+    void storeglobal(std::string const& from, Identifier const& identifier, const TypeReference& type) {
+        return store(from, identifier.name, type);
     }
 
     [[nodiscard]] std::string f2i(std::string const& from) {
