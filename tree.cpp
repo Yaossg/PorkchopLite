@@ -158,32 +158,12 @@ void SizeofExpr::walkBytecode(Porkchop::Assembler *assembler) const {
     reg = assembler->const_(type->size());
 }
 
-void IdExpr::walkBytecode(Assembler* assembler) const {
-    switch (lookup.scope) {
-        case LocalContext::LookupResult::Scope::NONE:
-            break;
-        case LocalContext::LookupResult::Scope::LOCAL:
-            reg = assembler->load(Assembler::regOf(lookup.index), getType());
-            break;
-        case LocalContext::LookupResult::Scope::GLOBAL:
-            reg = assembler->loadglobal(compiler.of(token), getType());
-            break;
-    }
+void AssignableExpr::walkBytecode(Porkchop::Assembler *assembler) const {
+    reg = assembler->load(addressOf(assembler), getType());
 }
 
-void IdExpr::walkStoreBytecode(std::string const& from, Assembler* assembler) const {
-    switch (lookup.scope) {
-        case LocalContext::LookupResult::Scope::NONE:
-            break;
-        case LocalContext::LookupResult::Scope::LOCAL:
-            assembler->store(from, Assembler::regOf(lookup.index), getType());
-            break;
-        case LocalContext::LookupResult::Scope::GLOBAL:
-            assembler->storeglobal(from, compiler.of(token), getType());
-            break;
-        default:
-            unreachable();
-    }
+void AssignableExpr::walkStoreBytecode(const std::string &from, Assembler *assembler) const {
+    assembler->store(from, addressOf(assembler), getType());
 }
 
 std::optional<$union> IdExpr::evalConst() const {
@@ -193,13 +173,30 @@ std::optional<$union> IdExpr::evalConst() const {
 }
 
 void IdExpr::ensureAssignable() const {
-    if (lookup.scope == LocalContext::LookupResult::Scope::GLOBAL && dynamic_cast<FuncType*>(getType().get())) {
+    if (lookup.scope == LocalContext::LookupResult::Scope::GLOBAL && isFunction(getType())) {
         raise("function is not assignable", segment());
     }
 }
 
+void IdExpr::walkBytecode(Porkchop::Assembler *assembler) const {
+    if (lookup.scope == LocalContext::LookupResult::Scope::GLOBAL && isFunction(getType())) {
+        reg = Assembler::escape(compiler.of(token));
+        return;
+    }
+    AssignableExpr::walkBytecode(assembler);
+}
+
 std::string IdExpr::addressOf(Assembler *assembler) const {
-    return Assembler::regOf(lookup.index);
+    switch (lookup.scope) {
+        case LocalContext::LookupResult::Scope::NONE:
+            return "%error";
+        case LocalContext::LookupResult::Scope::LOCAL:
+            return Assembler::regOf(lookup.index);
+        case LocalContext::LookupResult::Scope::GLOBAL:
+            return Assembler::escape(compiler.of(token));
+        default:
+            unreachable();
+    }
 }
 
 TypeReference PrefixExpr::evalType(TypeReference const& infer) const {
@@ -237,11 +234,7 @@ std::optional<$union> PrefixExpr::evalConst() const {
         case TokenType::OP_NOT:
             return !value.$bool;
         case TokenType::OP_INV:
-            if (isInt(type)) {
-                return ~value.$int;
-            } else {
-                return (uint8_t)~value.$byte;
-            }
+            return ~value.$int;
         default:
             return Expr::evalConst();
     }
@@ -290,17 +283,6 @@ TypeReference DereferenceExpr::evalType(const TypeReference &infer) const {
     rhs->expect("pointer type");
 }
 
-void DereferenceExpr::walkBytecode(Assembler *assembler) const {
-    rhs->walkBytecode(assembler);
-    auto ptr = dynamic_cast<PointerType*>(rhs->getType().get());
-    reg = assembler->load(rhs->reg, ptr->E);
-}
-
-void DereferenceExpr::walkStoreBytecode(std::string const& from, Assembler *assembler) const {
-    auto address = addressOf(assembler);
-    assembler->store(from, address, getType());
-}
-
 void DereferenceExpr::ensureAssignable() const {
 
 }
@@ -320,7 +302,7 @@ TypeReference StatefulPrefixExpr::evalType(TypeReference const& infer) const {
 }
 
 void StatefulPrefixExpr::walkBytecode(Assembler* assembler) const {
-    auto one = assembler->const_(token.type == TokenType::OP_INC ? 1L : -1L);
+    auto one = token.type == TokenType::OP_INC ? "1" : "-1";
     rhs->walkBytecode(assembler);
     auto type = rhs->getType();
     if (isInt(type)) {
@@ -341,7 +323,7 @@ TypeReference StatefulPostfixExpr::evalType(TypeReference const& infer) const {
 }
 
 void StatefulPostfixExpr::walkBytecode(Assembler* assembler) const {
-    auto one = assembler->const_(token.type == TokenType::OP_INC ? 1L : -1L);
+    auto one = token.type == TokenType::OP_INC ? "1" : "-1";
     auto type = lhs->getType();
     lhs->walkBytecode(assembler);
     lhs->walkStoreBytecode(
@@ -409,23 +391,11 @@ std::optional<$union> InfixExpr::evalConst() const {
         case TokenType::OP_AND:
             return value1.$size & value2.$size;
         case TokenType::OP_SHL:
-            if (isInt(lhs->getType())) {
-                return value1.$int << value2.$int;
-            } else {
-                return (uint8_t)(value1.$byte << value2.$int);
-            }
+            return value1.$int << value2.$int;
         case TokenType::OP_SHR:
-            if (isInt(lhs->getType())) {
-                return value1.$int >> value2.$int;
-            } else {
-                return (uint8_t)(value1.$byte >> value2.$int);
-            }
+            return value1.$int >> value2.$int;
         case TokenType::OP_USHR:
-            if (isInt(lhs->getType())) {
-                return value1.$size >> value2.$int;
-            } else {
-                return (uint8_t)(value1.$byte >> value2.$int);
-            }
+            return value1.$size >> value2.$int;
         case TokenType::OP_ADD:
             if (isInt(lhs->getType())) {
                 return value1.$int + value2.$int;
@@ -465,8 +435,6 @@ std::optional<$union> InfixExpr::evalConst() const {
     }
 }
 
-void toStringBytecode(Assembler* assembler, TypeReference const& type) {}
-
 void InfixExpr::walkBytecode(Assembler* assembler) const {
     lhs->walkBytecode(assembler);
     rhs->walkBytecode(assembler);
@@ -477,7 +445,7 @@ void InfixExpr::walkBytecode(Assembler* assembler) const {
         auto ptr2 = assembler->cast("ptrtoint", rhs->reg, type2, ScalarTypes::INT);
         auto sub = assembler->infix("sub", ptr1, ptr2, ScalarTypes::INT);
         auto sdiv = assembler->infix("sdiv", sub, assembler->const_(ptr->E->size()), ScalarTypes::INT);
-        reg = sdiv;
+        reg = std::move(sdiv);
         return;
     }
     switch (token.type) {
@@ -531,19 +499,15 @@ void InfixExpr::walkBytecode(Assembler* assembler) const {
 
 TypeReference CompareExpr::evalType(TypeReference const& infer) const {
     matchOperands(lhs.get(), rhs.get());
+    lhs->neverGonnaGiveYouUp("in relational operations");
     auto type = lhs->getType();
     bool equality = token.type == TokenType::OP_EQ || token.type == TokenType::OP_NE;
-    if (auto scalar = dynamic_cast<ScalarType*>(type.get())) {
-        switch (scalar->S) {
-            case ScalarTypeKind::NONE:
-                if (!equality) {
-                    raise("none only support equality operators", segment());
-                }
-            case ScalarTypeKind::NEVER:
-                lhs->neverGonnaGiveYouUp("in relational operations");
+    if (!equality) {
+        if (isNone(type)) {
+            raise("none only support equality operators", segment());
+        } else if (isFunction(type)) {
+            raise("function type only support equality operators", segment());
         }
-    } else if (dynamic_cast<FuncType*>(type.get()) && !equality) {
-        raise("function type only support equality operators", segment());
     }
     return ScalarTypes::BOOL;
 }
@@ -587,7 +551,7 @@ void CompareExpr::walkBytecode(Assembler *assembler) const {
     rhs->walkBytecode(assembler);
     const char* op1 = "", *op2 = "";
     if (!isFloat(lhs->getType())) {
-        bool pt = isPointer(type);
+        bool p = isPointer(type);
         op1 = "icmp";
         switch (token.type) {
             case TokenType::OP_EQ:
@@ -597,16 +561,16 @@ void CompareExpr::walkBytecode(Assembler *assembler) const {
                 op2 = "ne";
                 break;
             case TokenType::OP_LT:
-                op2 = pt ? "ult" : "slt";
+                op2 = p ? "ult" : "slt";
                 break;
             case TokenType::OP_LE:
-                op2 = pt ? "ule" : "sle";
+                op2 = p ? "ule" : "sle";
                 break;
             case TokenType::OP_GT:
-                op2 = pt ? "ugt" : "sgt";
+                op2 = p ? "ugt" : "sgt";
                 break;
             case TokenType::OP_GE:
-                op2 = pt ? "uge" : "sge";
+                op2 = p ? "uge" : "sge";
                 break;
             default:
                 unreachable();
@@ -798,16 +762,6 @@ TypeReference AccessExpr::evalType(TypeReference const& infer) const {
     lhs->expect("pointer type");
 }
 
-void AccessExpr::walkBytecode(Assembler* assembler) const {
-    auto index = addressOf(assembler);
-    reg = assembler->load(index, getType());
-}
-
-void AccessExpr::walkStoreBytecode(std::string const& from, Assembler* assembler) const {
-    auto index = addressOf(assembler);
-    assembler->store(from, index, getType());
-}
-
 void AccessExpr::ensureAssignable() const {
 
 }
@@ -815,8 +769,7 @@ void AccessExpr::ensureAssignable() const {
 std::string AccessExpr::addressOf(Assembler *assembler) const {
     lhs->walkBytecode(assembler);
     rhs->walkBytecode(assembler);
-    auto index = assembler->offset(lhs->reg, rhs->reg, getType());
-    return index;
+    return assembler->offset(lhs->reg, rhs->reg, getType());
 }
 
 TypeReference InvokeExpr::evalType(TypeReference const& infer) const {

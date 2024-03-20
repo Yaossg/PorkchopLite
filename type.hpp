@@ -248,6 +248,10 @@ struct FuncType : Type {
 };
 
 
+[[nodiscard]] inline bool isFunction(TypeReference const& type) noexcept {
+    return dynamic_cast<FuncType*>(type.get());
+}
+
 [[nodiscard]] inline TypeReference eithertype(TypeReference const& type1, TypeReference const& type2) noexcept {
     if (type1->equals(type2)) return type1;
     if (isNever(type1)) return type2;
@@ -260,14 +264,12 @@ union $union {
     size_t $size;
     std::nullptr_t $none;
     bool $bool;
-    uint8_t $byte;
     int64_t $int;
     double $float;
     $union(): $union(nullptr) {}
     $union(size_t $size): $size($size) {}
     $union(std::nullptr_t $none): $none($none) {}
     $union(bool $bool): $bool($bool) {}
-    $union(uint8_t $byte): $byte($byte) {}
     $union(int64_t $int): $int($int) {}
     $union(double $float): $float($float) {}
 };

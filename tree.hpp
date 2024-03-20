@@ -176,7 +176,8 @@ struct SizeofExpr : Expr {
 struct AssignableExpr : Expr {
     explicit AssignableExpr(Compiler& compiler): Expr(compiler) {}
 
-    virtual void walkStoreBytecode(std::string const& from, Assembler* assembler) const = 0;
+    void walkBytecode(Porkchop::Assembler *assembler) const override;
+    void walkStoreBytecode(std::string const& from, Assembler* assembler) const;
 
     virtual void ensureAssignable() const = 0;
 
@@ -203,9 +204,7 @@ struct IdExpr : AssignableExpr {
 
     [[nodiscard]] std::optional<$union> evalConst() const override;
 
-    void walkBytecode(Assembler* assembler) const override;
-
-    void walkStoreBytecode(std::string const& from, Assembler* assembler) const override;
+    void walkBytecode(Porkchop::Assembler *assembler) const override;
 
     void ensureAssignable() const override;
 
@@ -286,7 +285,6 @@ struct AddressOfExpr : Expr {
     void walkBytecode(Assembler* assembler) const override;
 };
 
-
 struct DereferenceExpr : AssignableExpr {
     Token token;
     std::unique_ptr<Expr> rhs;
@@ -301,10 +299,6 @@ struct DereferenceExpr : AssignableExpr {
     }
 
     [[nodiscard]] TypeReference evalType(TypeReference const& infer) const override;
-
-    void walkBytecode(Assembler* assembler) const override;
-
-    void walkStoreBytecode(std::string const& from, Assembler* assembler) const override;
 
     void ensureAssignable() const override;
 
@@ -407,10 +401,6 @@ struct AccessExpr : AssignableExpr {
     }
 
     [[nodiscard]] TypeReference evalType(TypeReference const& infer) const override;
-
-    void walkBytecode(Assembler* assembler) const override;
-
-    void walkStoreBytecode(std::string const& from, Assembler* assembler) const override;
 
     void ensureAssignable() const override;
 

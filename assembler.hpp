@@ -40,54 +40,36 @@ struct Assembler {
         return std::to_string(d);
     }
 
-    struct Identifier {
+    static std::string escape(std::string_view source) {
         std::string name;
-
-        Identifier(std::string_view source) {
-            bool simple = true;
+        bool simple = true;
+        for (char ch : source) {
+            if (ch != '_' && !isalnum(ch)) {
+                simple = false;
+                break;
+            }
+        }
+        name = "@";
+        if (simple) {
+            name += source;
+        } else {
+            name += '"';
             for (char ch : source) {
-                if (ch != '_' && !isalnum(ch)) {
-                    simple = false;
-                    break;
-                }
+                name += '\\';
+                char buf[3];
+                sprintf(buf, "%hhX", ch);
+                name += buf;
             }
-            name = "@";
-            if (simple) {
-                name += source;
-            } else {
-                name += '"';
-                for (char ch : source) {
-                    name += '\\';
-                    char buf[3];
-                    sprintf(buf, "%hhX", ch);
-                    name += buf;
-                }
-                name += '"';
-            }
+            name += '"';
         }
+        return name;
+    }
 
-        [[nodiscard]] const char* data() const {
-            return name.c_str();
-        }
-    };
-
-    void global(Identifier const& identifier, const TypeReference& type, std::string const& initial) {
+    void global(std::string const& identifier, const TypeReference& type, std::string const& initial) {
         char buf[64];
         auto name = type->serialize();
         sprintf(buf, "%s = global %s %s", identifier.data(), name.data(), initial.data());
         append(buf);
-    }
-
-    [[nodiscard]] std::string loadglobal(Identifier const& identifier, const TypeReference& type) {
-        if (dynamic_cast<FuncType*>(type.get())) {
-            return identifier.name;
-        } else {
-            return load(identifier.name, type);
-        }
-    }
-
-    void storeglobal(std::string const& from, Identifier const& identifier, const TypeReference& type) {
-        return store(from, identifier.name, type);
     }
 
     [[nodiscard]] std::string cast(const char* op, std::string const& from, const TypeReference& type1, const TypeReference& type2) {
@@ -122,7 +104,6 @@ struct Assembler {
         append(buf);
         return index;
     }
-
 
     [[nodiscard]] std::string neg(std::string const& rhs, const TypeReference& type) {
         if (isInt(type)) {
