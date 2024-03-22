@@ -1,6 +1,7 @@
 #include "common.hpp"
 #include "assembler.hpp"
 #include "global.hpp"
+#include <filesystem>
 
 std::unordered_map<std::string, std::string> parseArgs(int argc, const char* argv[]) {
     std::unordered_map<std::string, std::string> args;
@@ -19,6 +20,8 @@ std::unordered_map<std::string, std::string> parseArgs(int argc, const char* arg
             args["type"] = "mermaid";
         } else if (!strcmp("-l", argv[i]) || !strcmp("--llvm-ir", argv[i])) {
             args["type"] = "llvm-ir";
+        } else if (!strcmp("-g", argv[i]) || !strcmp("--debug", argv[i])) {
+            Porkchop::Assembler::debug_flag = true;
         } else {
             Porkchop::Error().with(
                     Porkchop::ErrorMessage().fatal().text("unknown flag: ").text(argv[i])
@@ -85,8 +88,11 @@ int main(int argc, const char* argv[]) try {
         output_file.puts(descriptor.c_str());
     } else if (output_type == "llvm-ir") {
         Porkchop::Assembler assembler;
+        namespace fs = std::filesystem;
+        auto path = fs::absolute(fs::path(args["input"]));
+        assembler.init_debug(path.filename(), path.parent_path());
         try {
-            compiler.compile(&assembler); // TODO is this an additional catch?
+            compiler.compile(&assembler);
         } catch (Porkchop::Error& e) {
             e.report(&compiler.source, true);
             std::exit(-1);

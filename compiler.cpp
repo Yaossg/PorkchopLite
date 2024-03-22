@@ -39,15 +39,17 @@ void Compiler::compileLet(LetExpr *let, Assembler *assembler) const {
     auto initial = let->initializer->requireConst();
     auto type = let->initializer->getType();
     std::string_view name(of(let->declarator->name->token));
+    std::string value;
     if (isBool(type)) {
-        assembler->global(Assembler::escape(name), type, assembler->const_(initial.$bool));
+        value = assembler->const_(initial.$bool);
     } else if (isInt(type)) {
-        assembler->global(Assembler::escape(name), type, assembler->const_(initial.$int));
+        value = assembler->const_(initial.$int);
     } else if (isFloat(type)) {
-        assembler->global(Assembler::escape(name), type, assembler->const_(initial.$float));
+        value = assembler->const_(initial.$float);
     } else {
         raise("PorkchopLite does not support let of none type", let->segment());
     }
+    assembler->global(Assembler::escape(name), type, value, let->token.line);
 }
 
 void Compiler::compileFn(FunctionDeclarator* fn, Assembler* assembler) const {
@@ -56,7 +58,8 @@ void Compiler::compileFn(FunctionDeclarator* fn, Assembler* assembler) const {
     declare += " ";
     declare += fn->parameters->prototype->R->serialize();
     declare += " ";
-    declare += Assembler::escape(of(fn->name->token));
+    std::string identifier = Assembler::escape(of(fn->name->token));
+    declare += identifier;
     declare += "(";
     size_t index = 0;
     for (auto&& param : fn->parameters->prototype->P) {
@@ -67,8 +70,21 @@ void Compiler::compileFn(FunctionDeclarator* fn, Assembler* assembler) const {
         declare += " ";
         declare += Assembler::regOf(index++);
     }
+
     declare += ")";
     if (definition) {
+        if (Assembler::debug_flag) {
+            char buf[256];
+            auto line = fn->definition->clause->segment().line1 + 1;
+            sprintf(buf, "distinct !DISubprogram(name: %s, scope: %s, file: %s, line: %zu, type: %s, scopeLine: %zu, "
+                         "flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: %s, retainedNodes: !{})",
+                    Assembler::quote(identifier).data(), Assembler::DEBUG::FILE, Assembler::DEBUG::FILE, line,
+                    assembler->prototypeOf(fn->parameters->prototype).data(), line, Assembler::DEBUG::UNIT);
+            auto sp = assembler->debug(buf);
+            assembler->scope = sp;
+            declare += " !dbg ";
+            declare += sp;
+        }
         declare += " {";
     }
     assembler->append(declare);
@@ -81,13 +97,18 @@ void Compiler::compileFn(FunctionDeclarator* fn, Assembler* assembler) const {
         for (auto&& local : definition->locals) {
             auto reg = assembler->alloca_(local);
             if (param < index) {
-                assembler->store(Assembler::regOf(param), reg, fn->parameters->prototype->P[param]);
+                auto type = fn->parameters->prototype->P[param];
+                auto token = fn->parameters->identifiers[param]->token;
+                assembler->store(Assembler::regOf(param), reg, type, token);
+                assembler->local(*this, token, reg, type, param + 1);
                 ++param;
             }
         }
         definition->clause->walkBytecode(assembler);
         if (!isNever(definition->clause->getType())) {
-            assembler->return_(definition->clause->reg, fn->parameters->prototype->R);
+            auto segment =  fn->definition->clause->segment();
+            Token token2{.line = segment.line2, .column = segment.column2 - 1};
+            assembler->return_(definition->clause->reg, fn->parameters->prototype->R, token2);
         }
         assembler->indent -= 4;
         assembler->append("}");

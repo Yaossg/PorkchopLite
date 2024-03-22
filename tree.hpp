@@ -428,7 +428,7 @@ struct InvokeExpr : Expr {
 
     [[nodiscard]] TypeReference evalType(TypeReference const& infer) const override;
 
-    static std::string walkBytecode(const Expr *lhs, const std::vector<const Expr *> &rhs, Assembler *assembler, const TypeReference& type);
+    static std::string walkBytecode(const Expr *lhs, const std::vector<const Expr *> &rhs, Assembler *assembler, const TypeReference& type, Token token1, Token token2);
 
     void walkBytecode(Assembler* assembler) const override;
 };
@@ -502,7 +502,7 @@ struct IfElseExpr : Expr {
 
     void walkBytecode(Assembler* assembler) const override;
 
-    [[nodiscard]] static std::string walkBytecode(Expr const* cond, Expr const* lhs, Expr const* rhs, Compiler& compiler, Assembler* assembler, const TypeReference& type);
+    [[nodiscard]] static std::string walkBytecode(Expr const* cond, Expr const* lhs, Expr const* rhs, Compiler& compiler, Assembler* assembler, const TypeReference& type, Token token);
 };
 
 struct LoopHook;

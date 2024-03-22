@@ -159,11 +159,15 @@ void SizeofExpr::walkBytecode(Porkchop::Assembler *assembler) const {
 }
 
 void AssignableExpr::walkBytecode(Porkchop::Assembler *assembler) const {
-    reg = assembler->load(addressOf(assembler), getType());
+    auto seg = segment();
+    Token token{.line = seg.line1, .column = seg.column1};
+    reg = assembler->load(addressOf(assembler), getType(), token);
 }
 
 void AssignableExpr::walkStoreBytecode(const std::string &from, Assembler *assembler) const {
-    assembler->store(from, addressOf(assembler), getType());
+    auto seg = segment();
+    Token token{.line = seg.line1, .column = seg.column1};
+    assembler->store(from, addressOf(assembler), getType(), token);
 }
 
 std::optional<$union> IdExpr::evalConst() const {
@@ -248,15 +252,15 @@ void PrefixExpr::walkBytecode(Assembler* assembler) const {
             reg = rhs->reg;
             break;
         case TokenType::OP_SUB: {
-            reg = assembler->neg(rhs->reg, getType());
+            reg = assembler->neg(rhs->reg, getType(), token);
             break;
         }
         case TokenType::OP_NOT: {
-            reg = assembler->infix("xor", "1", rhs->reg, getType());
+            reg = assembler->infix("xor", "1", rhs->reg, getType(), token);
             break;
         }
         case TokenType::OP_INV: {
-            reg = assembler->infix("xor", "-1", rhs->reg, getType());
+            reg = assembler->infix("xor", "-1", rhs->reg, getType(), token);
             break;
         }
         default:
@@ -306,9 +310,9 @@ void StatefulPrefixExpr::walkBytecode(Assembler* assembler) const {
     rhs->walkBytecode(assembler);
     auto type = rhs->getType();
     if (isInt(type)) {
-        reg = assembler->infix("add", rhs->reg, one, type);
+        reg = assembler->infix("add", rhs->reg, one, type, token);
     } else {
-        reg = assembler->offset(rhs->reg, one, type);
+        reg = assembler->offset(rhs->reg, one, type, token);
     }
     rhs->walkStoreBytecode(reg, assembler);
 }
@@ -328,8 +332,8 @@ void StatefulPostfixExpr::walkBytecode(Assembler* assembler) const {
     lhs->walkBytecode(assembler);
     lhs->walkStoreBytecode(
             isInt(type)
-            ? assembler->infix("add", lhs->reg, one, type)
-            : assembler->offset(lhs->reg, one, type),
+            ? assembler->infix("add", lhs->reg, one, type, token)
+            : assembler->offset(lhs->reg, one, type, token),
             assembler);
     reg = lhs->reg;
 }
@@ -441,56 +445,56 @@ void InfixExpr::walkBytecode(Assembler* assembler) const {
     bool i = isInt(lhs->getType());
     auto type1 = lhs->getType(), type2 = rhs->getType();
     if (auto ptr = dynamic_cast<PointerType*>(type1.get()); ptr && token.type == TokenType::OP_SUB && type1->equals(type2)) {
-        auto ptr1 = assembler->cast("ptrtoint", lhs->reg, type1, ScalarTypes::INT);
-        auto ptr2 = assembler->cast("ptrtoint", rhs->reg, type2, ScalarTypes::INT);
-        auto sub = assembler->infix("sub", ptr1, ptr2, ScalarTypes::INT);
-        auto sdiv = assembler->infix("sdiv", sub, assembler->const_(ptr->E->size()), ScalarTypes::INT);
+        auto ptr1 = assembler->cast("ptrtoint", lhs->reg, type1, ScalarTypes::INT, token);
+        auto ptr2 = assembler->cast("ptrtoint", rhs->reg, type2, ScalarTypes::INT, token);
+        auto sub = assembler->infix("sub", ptr1, ptr2, ScalarTypes::INT, token);
+        auto sdiv = assembler->infix("sdiv", sub, assembler->const_(ptr->E->size()), ScalarTypes::INT, token);
         reg = std::move(sdiv);
         return;
     }
     switch (token.type) {
         case TokenType::OP_OR:
-            reg = assembler->infix("or", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix("or", lhs->reg, rhs->reg, getType(), token);
             break;
         case TokenType::OP_XOR:
-            reg = assembler->infix("xor", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix("xor", lhs->reg, rhs->reg, getType(), token);
             break;
         case TokenType::OP_AND:
-            reg = assembler->infix("and", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix("and", lhs->reg, rhs->reg, getType(), token);
             break;
         case TokenType::OP_SHL:
-            reg = assembler->infix("shl", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix("shl", lhs->reg, rhs->reg, getType(), token);
             break;
         case TokenType::OP_SHR:
-            reg = assembler->infix("ashr", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix("ashr", lhs->reg, rhs->reg, getType(), token);
             break;
         case TokenType::OP_USHR:
-            reg = assembler->infix("lshr", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix("lshr", lhs->reg, rhs->reg, getType(), token);
             break;
         case TokenType::OP_ADD:
             if (isInt(type1) && isPointer(type2)) {
-                reg = assembler->offset(rhs->reg, lhs->reg, getType());
+                reg = assembler->offset(rhs->reg, lhs->reg, getType(), token);
             } else if (isInt(type2) && isPointer(type1)) {
-                reg = assembler->offset(lhs->reg, rhs->reg, getType());
+                reg = assembler->offset(lhs->reg, rhs->reg, getType(), token);
             } else {
-                reg = assembler->infix(i ? "add" : "fadd", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix(i ? "add" : "fadd", lhs->reg, rhs->reg, getType(), token);
             }
             break;
         case TokenType::OP_SUB:
             if (isInt(type2) && isPointer(type1)) {
-                reg = assembler->offset(lhs->reg, assembler->neg(rhs->reg, rhs->getType()), getType());
+                reg = assembler->offset(lhs->reg, assembler->neg(rhs->reg, rhs->getType(), token), getType(), token);
             } else {
-                reg = assembler->infix(i ? "sub" : "fsub", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix(i ? "sub" : "fsub", lhs->reg, rhs->reg, getType(), token);
             }
             break;
         case TokenType::OP_MUL:
-            reg = assembler->infix(i ? "mul" : "fmul", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix(i ? "mul" : "fmul", lhs->reg, rhs->reg, getType(), token);
             break;
         case TokenType::OP_DIV:
-            reg = assembler->infix(i ? "sdiv" : "fdiv", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix(i ? "sdiv" : "fdiv", lhs->reg, rhs->reg, getType(), token);
             break;
         case TokenType::OP_REM:
-            reg = assembler->infix(i ? "srem" : "frem", lhs->reg, rhs->reg, getType());
+            reg = assembler->infix(i ? "srem" : "frem", lhs->reg, rhs->reg, getType(), token);
             break;
         default:
             unreachable();
@@ -600,7 +604,7 @@ void CompareExpr::walkBytecode(Assembler *assembler) const {
                 unreachable();
         }
     }
-    reg = assembler->compare(op1, op2, lhs->reg, rhs->reg, lhs->getType());
+    reg = assembler->compare(op1, op2, lhs->reg, rhs->reg, lhs->getType(), token);
 }
 
 TypeReference LogicalExpr::evalType(TypeReference const& infer) const {
@@ -623,10 +627,10 @@ std::optional<$union> LogicalExpr::evalConst() const {
 void LogicalExpr::walkBytecode(Assembler* assembler) const {
     if (token.type == TokenType::OP_LAND) {
         static const BoolConstExpr zero{compiler, {0, 0, 0, TokenType::KW_FALSE}};
-        reg = IfElseExpr::walkBytecode(lhs.get(), rhs.get(), &zero, compiler, assembler, ScalarTypes::BOOL);
+        reg = IfElseExpr::walkBytecode(lhs.get(), rhs.get(), &zero, compiler, assembler, ScalarTypes::BOOL, token);
     } else {
         static const BoolConstExpr one{compiler, {0, 0, 0, TokenType::KW_TRUE}};
-        reg = IfElseExpr::walkBytecode(lhs.get(), &one, rhs.get(), compiler, assembler, ScalarTypes::BOOL);
+        reg = IfElseExpr::walkBytecode(lhs.get(), &one, rhs.get(), compiler, assembler, ScalarTypes::BOOL, token);
     }
 }
 
@@ -656,7 +660,7 @@ TypeReference InfixInvokeExpr::evalType(TypeReference const& infer) const {
 }
 
 void InfixInvokeExpr::walkBytecode(Assembler *assembler) const {
-    reg = InvokeExpr::walkBytecode(infix.get(), {lhs.get(), rhs.get()}, assembler, getType());
+    reg = InvokeExpr::walkBytecode(infix.get(), {lhs.get(), rhs.get()}, assembler, getType(), token, token);
 }
 
 TypeReference AssignExpr::evalType(TypeReference const& infer) const {
@@ -706,45 +710,45 @@ void AssignExpr::walkBytecode(Assembler* assembler) const {
         bool p = isPointer(lhs->getType());
         switch (token.type) {
             case TokenType::OP_ASSIGN_OR:
-                reg = assembler->infix("or", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix("or", lhs->reg, rhs->reg, getType(), token);
                 break;
             case TokenType::OP_ASSIGN_XOR:
-                reg = assembler->infix("xor", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix("xor", lhs->reg, rhs->reg, getType(), token);
                 break;
             case TokenType::OP_ASSIGN_AND:
-                reg = assembler->infix("and", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix("and", lhs->reg, rhs->reg, getType(), token);
                 break;
             case TokenType::OP_ASSIGN_SHL:
-                reg = assembler->infix("shl", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix("shl", lhs->reg, rhs->reg, getType(), token);
                 break;
             case TokenType::OP_ASSIGN_SHR:
-                reg = assembler->infix("ashr", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix("ashr", lhs->reg, rhs->reg, getType(), token);
                 break;
             case TokenType::OP_ASSIGN_USHR:
-                reg = assembler->infix("lshr", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix("lshr", lhs->reg, rhs->reg, getType(), token);
                 break;
             case TokenType::OP_ASSIGN_ADD:
                 if (p) {
-                    reg = assembler->offset(lhs->reg, rhs->reg, getType());
+                    reg = assembler->offset(lhs->reg, rhs->reg, getType(), token);
                 } else {
-                    reg = assembler->infix(i ? "add" : "fadd", lhs->reg, rhs->reg, getType());
+                    reg = assembler->infix(i ? "add" : "fadd", lhs->reg, rhs->reg, getType(), token);
                 }
                 break;
             case TokenType::OP_ASSIGN_SUB:
                 if (p) {
-                    reg = assembler->offset(lhs->reg, assembler->neg(rhs->reg, rhs->getType()), getType());
+                    reg = assembler->offset(lhs->reg, assembler->neg(rhs->reg, rhs->getType(), token), getType(), token);
                 } else {
-                    reg = assembler->infix(i ? "sub" : "fsub", lhs->reg, rhs->reg, getType());
+                    reg = assembler->infix(i ? "sub" : "fsub", lhs->reg, rhs->reg, getType(), token);
                 }
                 break;
             case TokenType::OP_ASSIGN_MUL:
-                reg = assembler->infix(i ? "mul" : "fmul", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix(i ? "mul" : "fmul", lhs->reg, rhs->reg, getType(), token);
                 break;
             case TokenType::OP_ASSIGN_DIV:
-                reg = assembler->infix(i ? "sdiv" : "fdiv", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix(i ? "sdiv" : "fdiv", lhs->reg, rhs->reg, getType(), token);
                 break;
             case TokenType::OP_ASSIGN_REM:
-                reg = assembler->infix(i ? "srem" : "frem", lhs->reg, rhs->reg, getType());
+                reg = assembler->infix(i ? "srem" : "frem", lhs->reg, rhs->reg, getType(), token);
                 break;
             default:
                 unreachable();
@@ -769,7 +773,7 @@ void AccessExpr::ensureAssignable() const {
 std::string AccessExpr::addressOf(Assembler *assembler) const {
     lhs->walkBytecode(assembler);
     rhs->walkBytecode(assembler);
-    return assembler->offset(lhs->reg, rhs->reg, getType());
+    return assembler->offset(lhs->reg, rhs->reg, getType(), token1);
 }
 
 TypeReference InvokeExpr::evalType(TypeReference const& infer) const {
@@ -793,7 +797,7 @@ TypeReference InvokeExpr::evalType(TypeReference const& infer) const {
     lhs->expect("invocable type");
 }
 
-std::string InvokeExpr::walkBytecode(const Expr *lhs, const std::vector<const Expr *> &rhs, Assembler *assembler, const TypeReference& type) {
+std::string InvokeExpr::walkBytecode(const Expr *lhs, const std::vector<const Expr *> &rhs, Assembler *assembler, const TypeReference& type, Token token1, Token token2) {
     std::string reg = "%error";
     lhs->walkBytecode(assembler);
     for (auto& e : rhs) {
@@ -818,9 +822,9 @@ std::string InvokeExpr::walkBytecode(const Expr *lhs, const std::vector<const Ex
         call += e->reg;
     }
     call += ")";
-    assembler->append(call);
+    assembler->append(call, token1);
     if (isNever(type)) {
-        assembler->append("unreachable");
+        assembler->append("unreachable", token2);
     }
     return reg;
 }
@@ -830,7 +834,7 @@ void InvokeExpr::walkBytecode(Assembler* assembler) const {
     for (auto&& e : rhs) {
         params.push_back(e.get());
     }
-    reg = walkBytecode(lhs.get(), params, assembler, getType());
+    reg = walkBytecode(lhs.get(), params, assembler, getType(), token1, token2);
 }
 
 TypeReference AsExpr::evalType(TypeReference const& infer) const {
@@ -868,19 +872,19 @@ void AsExpr::walkBytecode(Assembler* assembler) const {
     }
     if (isInt(type)) {
         if (isFloat(T)) {
-            reg = assembler->cast("sitofp", lhs->reg, type, T);
+            reg = assembler->cast("sitofp", lhs->reg, type, T, token);
         } else if (isPointer(T)) {
-            reg = assembler->cast("inttoptr", lhs->reg, type, T);
+            reg = assembler->cast("inttoptr", lhs->reg, type, T, token);
         }
     } else if (isPointer(type)) {
         if (isInt(T)) {
-            reg = assembler->cast("ptrtoint", lhs->reg, type, T);
+            reg = assembler->cast("ptrtoint", lhs->reg, type, T, token);
         } else if (isPointer(T)) {
             reg = lhs->reg;
         }
     } else if (isFloat(type)) {
         if (isInt(T)) {
-            reg = assembler->cast("fptosi", lhs->reg, type, T);
+            reg = assembler->cast("fptosi", lhs->reg, type, T, token);
         }
     }
 }
@@ -909,10 +913,18 @@ std::optional<$union> ClauseExpr::evalConst() const {
 }
 
 void ClauseExpr::walkBytecode(Assembler* assembler) const {
+    char buf[256];
+    auto old = std::move(assembler->scope);
+    if (Assembler::debug_flag) {
+        sprintf(buf, "distinct !DILexicalBlock(scope: %s, file: %s, line: %zu, column: %zu)",
+                old.data(), Assembler::DEBUG::FILE, token1.line, token1.column);
+        assembler->scope = assembler->debug(buf);
+    }
     for (auto&& line : lines) {
         line->walkBytecode(assembler);
         reg = line->reg;
     }
+    assembler->scope = std::move(old);
 }
 
 TypeReference IfElseExpr::evalType(TypeReference const& infer) const {
@@ -933,10 +945,10 @@ std::optional<$union> IfElseExpr::evalConst() const {
 }
 
 void IfElseExpr::walkBytecode(Assembler* assembler) const {
-    reg = walkBytecode(cond.get(), lhs.get(), rhs.get(), compiler, assembler, getType());
+    reg = walkBytecode(cond.get(), lhs.get(), rhs.get(), compiler, assembler, getType(), token);
 }
 
-std::string IfElseExpr::walkBytecode(Expr const* cond, Expr const* lhs, Expr const* rhs, Compiler& compiler, Assembler* assembler, const TypeReference& type) {
+std::string IfElseExpr::walkBytecode(Expr const* cond, Expr const* lhs, Expr const* rhs, Compiler& compiler, Assembler* assembler, const TypeReference& type, Token token) {
     size_t A = compiler.global->labelUntil++;
     size_t B = compiler.global->labelUntil++;
     size_t C = compiler.global->labelUntil++;
@@ -946,16 +958,16 @@ std::string IfElseExpr::walkBytecode(Expr const* cond, Expr const* lhs, Expr con
     assembler->br(cond->reg, A, B);
     assembler->label(A);
     lhs->walkBytecode(assembler);
-    if (store && !isNever(lhs->getType())) assembler->store(lhs->reg, reg, type);
+    if (store && !isNever(lhs->getType())) assembler->store(lhs->reg, reg, type, token);
     if (!isNever(lhs->getType()))
         assembler->br(C);
     assembler->label(B);
     rhs->walkBytecode(assembler);
-    if (store && !isNever(rhs->getType())) assembler->store(rhs->reg, reg, type);
+    if (store && !isNever(rhs->getType())) assembler->store(rhs->reg, reg, type, token);
     if (!isNever(rhs->getType()))
         assembler->br(C);
     assembler->label(C);
-    return store ? assembler->load(reg, type) : reg;
+    return store ? assembler->load(reg, type, token) : reg;
 }
 
 TypeReference BreakExpr::evalType(TypeReference const& infer) const {
@@ -999,7 +1011,7 @@ TypeReference ReturnExpr::evalType(TypeReference const& infer) const {
 
 void ReturnExpr::walkBytecode(Assembler* assembler) const {
     rhs->walkBytecode(assembler);
-    assembler->return_(rhs->reg, rhs->getType());
+    assembler->return_(rhs->reg, rhs->getType(), token);
 }
 
 void SimpleDeclarator::infer(TypeReference type) {
@@ -1029,6 +1041,7 @@ TypeReference LetExpr::evalType(TypeReference const& infer) const {
 void LetExpr::walkBytecode(Assembler *assembler) const {
     initializer->walkBytecode(assembler);
     declarator->walkBytecode(reg = initializer->reg, assembler);
+    assembler->local(compiler, declarator->name->token, declarator->name->addressOf(assembler), getType());
 }
 
 }
