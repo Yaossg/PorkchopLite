@@ -64,6 +64,7 @@ struct LineTokenizer {
     void scanDigits(bool pred(char) noexcept);
     void addNumber();
     void addChar();
+    void addString();
     void checkGreedy(const char* left, const char* right, TokenType match);
 };
 

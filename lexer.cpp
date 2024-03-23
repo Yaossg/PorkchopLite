@@ -69,7 +69,7 @@ void LineTokenizer::tokenize() {
                 addChar();
                 break;
             case '"':
-                raise("PorkchopLite does not support string");
+                addString();
                 break;
             case '{':
                 addLBrace();
@@ -220,6 +220,20 @@ void LineTokenizer::addChar() {
     raise("unterminated character literal");
 }
 
+void LineTokenizer::addString() {
+    while (char ch = getc()) {
+        switch (ch) {
+            case '"':
+                add(TokenType::STRING_LITERAL);
+                return;
+            case '\\':
+                getc();
+                break;
+        }
+    }
+    raise("unterminated string literal");
+}
+
 void LineTokenizer::add(TokenType type) {
     if (backslash) raise("no token is allowed after backslash in one line");
     context.tokens.push_back(make(type));
@@ -296,6 +310,15 @@ double parseFloat(Source& source, Token token) try {
 
 char32_t parseChar(Source& source, Token token) {
     return UnicodeParser(source.of(token), token).unquoteChar(token);
+}
+
+std::string parseString(Source& source, Token token) {
+    size_t prefix = 1, suffix = 1; bool escape = true;
+    auto view = source.of(token);
+    view.remove_prefix(prefix);
+    view.remove_suffix(suffix);
+    auto parsed = UnicodeParser(view, token).unquoteString(escape);
+    return parsed;
 }
 
 }

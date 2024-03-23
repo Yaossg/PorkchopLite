@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include "global.hpp"
+#include "lexer.hpp"
 
 namespace Porkchop {
 
@@ -232,6 +233,8 @@ ExprHandle Parser::parseExpression(Expr::Level level) {
                     return make<BoolConstExpr>(next());
                 case TokenType::CHARACTER_LITERAL:
                     return make<CharConstExpr>(next());
+                case TokenType::STRING_LITERAL:
+                    raise("string is not supported in PorkchopLite", next());
                 case TokenType::BINARY_INTEGER:
                 case TokenType::OCTAL_INTEGER:
                 case TokenType::DECIMAL_INTEGER:
@@ -251,9 +254,11 @@ ExprHandle Parser::parseExpression(Expr::Level level) {
                     return parseLet(false);
 
                 case TokenType::KW_ELSE:
+                case TokenType::KW_IMPORT:
+                case TokenType::KW_EXPORT:
                     Error().with(
                             ErrorMessage().error(next())
-                            .text("stray").quote("else")
+                            .text("stray").quote(compiler.of(token))
                             ).raise();
 
                 case TokenType::KW_BREAK:
@@ -375,17 +380,32 @@ void Parser::parseFile() {
     while (remains()) {
         while (remains() && peek().type == TokenType::LINEBREAK) next();
         if (!remains()) return;
+        bool exported = false;
+        if (peek().type == TokenType::KW_EXPORT) {
+            next();
+            exported = true;
+        }
         auto token = peek();
         switch (token.type) {
-            case TokenType::KW_FN:
-                context.global->fns.push_back(parseFn());
-                break;
-            case TokenType::KW_LET: {
-                context.global->lets.push_back(parseLet(true));
+            case TokenType::KW_FN: {
+                auto fn = parseFn();
+                if (exported)
+                    context.global->exports.emplace(compiler.of(fn->name->token), fn->parameters->prototype);
+                context.global->fns.push_back(std::move(fn));
                 break;
             }
+            case TokenType::KW_LET:
+                if (exported) raise("exported global variable is not yet supported", token);
+                context.global->lets.push_back(parseLet(true));
+                break;
+            case TokenType::KW_IMPORT:
+                next();
+                context.global->import_(
+                        parseString(compiler.source, expect(TokenType::STRING_LITERAL, "quoted string")),
+                        exported, compiler, token);
+                break;
             default:
-                raise("fn or let is expected at top level of a file", token);
+                raise("fn, let or import is expected at top level of a file", token);
         }
     }
 }

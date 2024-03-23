@@ -1,7 +1,6 @@
 #include "common.hpp"
 #include "assembler.hpp"
 #include "global.hpp"
-#include <filesystem>
 
 std::unordered_map<std::string, std::string> parseArgs(int argc, const char* argv[]) {
     std::unordered_map<std::string, std::string> args;
@@ -75,10 +74,11 @@ struct OutputFile {
 int main(int argc, const char* argv[]) try {
     Porkchop::forceUTF8();
     auto args = parseArgs(argc, argv);
-    auto original = Porkchop::readText(args["input"].c_str());
+    auto path = fs::absolute(fs::path(args["input"]));
+    auto original = Porkchop::readText(Porkchop::open(path.c_str(), "r"));
     Porkchop::Source source;
     Porkchop::tokenize(source, original);
-    Porkchop::GlobalScope global;
+    Porkchop::GlobalScope global(path);
     Porkchop::Compiler compiler(&global, std::move(source));
     Porkchop::parse(compiler);
     auto const& output_type = args["type"];
@@ -88,8 +88,6 @@ int main(int argc, const char* argv[]) try {
         output_file.puts(descriptor.c_str());
     } else if (output_type == "llvm-ir") {
         Porkchop::Assembler assembler;
-        namespace fs = std::filesystem;
-        auto path = fs::absolute(fs::path(args["input"]));
         assembler.init_debug(path.filename(), path.parent_path());
         try {
             compiler.compile(&assembler);

@@ -10,8 +10,7 @@ namespace Porkchop {
 
 FILE* open(const char* filename, const char* mode);
 
-inline std::string readText(const char* filename) {
-    FILE* input_file = open(filename, "r");
+inline std::string readText(FILE* input_file) {
     fseek(input_file, 0, SEEK_END);
     size_t size = ftell(input_file);
     fseek(input_file, 0, SEEK_SET);

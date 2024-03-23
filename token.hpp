@@ -25,6 +25,8 @@ enum class TokenType {
     KW_AS,
     KW_LET,
     KW_SIZEOF,
+    KW_IMPORT,
+    KW_EXPORT,
 
     LPAREN,
     RPAREN,
@@ -73,6 +75,7 @@ enum class TokenType {
     OP_COLON,
 
     CHARACTER_LITERAL,
+    STRING_LITERAL,
     BINARY_INTEGER,
     OCTAL_INTEGER,
     DECIMAL_INTEGER,
@@ -98,6 +101,8 @@ const std::unordered_map<std::string_view, TokenType> KEYWORDS {
     {"as", TokenType::KW_AS},
     {"let", TokenType::KW_LET},
     {"sizeof", TokenType::KW_SIZEOF},
+    {"import", TokenType::KW_IMPORT},
+    {"export", TokenType::KW_EXPORT},
 };
 
 const std::unordered_map<std::string_view, TokenType> PUNCTUATIONS {
