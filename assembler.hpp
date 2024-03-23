@@ -35,7 +35,7 @@ struct Assembler {
                                             "globals: !9, splitDebugInlining: false, nameTableKind: None)",
                 "!1 = !DIFile(filename: \"" + filename + "\", directory: \"" + directory + "\")",
                 "!2 = !{!\"PorkchopLite\"}",
-                "!3 = !{i32 2, !\"Dwarf Version\", i32 2}",
+                "!3 = !{i32 7, !\"Dwarf Version\", i32 5}",
                 "!4 = !{i32 2, !\"Debug Info Version\", i32 3}",
                 "!5 = !{i32 1, !\"PIC Level\", i32 2}",
                 "!6 = !DIBasicType(name: \"bool\", size: 8, encoding: DW_ATE_boolean)",

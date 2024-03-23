@@ -9,6 +9,7 @@ sudo apt install clang
 sudo apt install llvm
 ```
 
+请使用 LLVM 14
 
 ## 组件
 
@@ -27,12 +28,12 @@ Sources-->|Lexer|Tokens-->|Parser|AST
 
 end
 
-
-AST-->IR["LLVM IR"]-->Instructions
+IR["LLVM IR"]
+AST-->IR
 
 subgraph LLVM Backends
-Instructions-->|Interpreter|Execution
-Instructions-->|Assembler|Executable
+IR-->|lli|Execution
+IR-->|llc|Executable
 end
 
 end
@@ -46,13 +47,34 @@ git clone https://github.com/Yaossg/PorkchopLite.git
 cd PorkchopLite
 bash init.sh
 cd build
-vim main.pc     # write code in this file
-bash build.sh   # build and run the program
+bash pcmake.sh <args...>
 ```
 
-产生的 `out.ll` 文件还可以根据需要自行编译成汇编或可执行文件。
+### PorkchopLite 使用
 
-如果需要使用外部函数，可以编辑 `lib/lib.c` 并在 `main.pc` 文件开头添加对应的函数声明。
+```
+PorkchopLite <input> <options...>
+```
+
+- `<input>` 输入的 Porkchop 源代码
+- 选项
+  - `-o <output>` 指定输出文件名
+  - `-g` 生成调试信息
+  - `-l` 输出 LLVM IR
+  - `-m` 输出 Mermaid
+
+### pcmake.sh
+
+```
+bash pcmake.sh <input> <options...>
+```
+
+- `<input>` 任意数量的 `.c` C 语言源代码或 `.pc` Porkchop 语言源代码文件
+- 选项
+  - `-o <output>` 指定输出文件文件名，默认为 `a.out`
+  - `-g` 生成调试信息
+  - `-i` 解释执行，不生成可执行文件
+  - `-v` 不清理编译过程的中间文件
 
 ## 示例代码片段
 
@@ -305,6 +327,31 @@ L3:
 与 Porkchop 不同，PorkchopLite 的源文件顶层不是一个表达而，而是只允许全局函数和全局变量的声明和定义。程序的入口是 `main`。如果没有 `main`，程序虽然不可以执行，但是可以作为其它程序的库使用。
 
 需要注意的是，`main` 函数的推荐返回类型是 `int`，返回其它类型在语法上不会出错，但是执行后返回的结果是未定义的。
+
+### 多文件
+
+Porkchop 支持多文件。全局的函数可以通过 `export` 关键字导出
+
+```
+# src/hello.pc
+
+export fn hello() = 42
+```
+
+在另外一个文件中，就可以通过相对路径进行访问
+
+```
+# src/main.pc
+import "hello.pc"
+
+fn main() = hello()
+```
+
+此外，从其它文件 `import` 得来的标识符默认是不会 `export` 的。你可以在 `import` 前面加 `export` 再进行导出。
+
+```
+export import "hello.pc" # re-export imported hello()
+```
 
 ### 万物皆为表达式
 

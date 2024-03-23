@@ -1,4 +1,4 @@
 mkdir -p build
-cp build.sh build/build.sh
+cp pcmake.sh build/pcmake.sh
 cd build
 cmake ..

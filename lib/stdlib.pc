@@ -1,0 +1,6 @@
+export fn printint(value: int): none
+export fn printfloat(value: float): none
+export fn exit(status: int): never
+export fn print_int_array(array: *int, size: int): none
+export fn alloc(size: int): *none
+export fn dealloc(array: *none): none
