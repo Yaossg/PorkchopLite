@@ -29,7 +29,7 @@ FILE* open(const char *filename, const char *mode, Compiler& compiler, Token tok
     if (file == nullptr) {
         Error error;
         error.with(ErrorMessage().error(token).text("failed to open input file: ").text(filename));
-        error.report(&compiler.source, true);
+        error.report(&compiler.source);
         std::exit(20);
     }
     return file;

@@ -20,7 +20,6 @@ do
 done
 
 cnt=0
-make PorkchopLite -j$(nproc)
 for file in "${input[@]}"
 do
   if [[ $file == *.c ]]

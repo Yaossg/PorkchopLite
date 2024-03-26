@@ -8,7 +8,7 @@ std::unordered_map<std::string, std::string> parseArgs(int argc, const char* arg
         Porkchop::Error error;
         error.with(Porkchop::ErrorMessage().fatal().text("too few arguments, input file expected"));
         error.with(Porkchop::ErrorMessage().usage().text("Porkchop <input> [options...]"));
-        error.report(nullptr, true);
+        error.report(nullptr);
         std::exit(10);
     }
     args["input"] = argv[1];
@@ -24,14 +24,14 @@ std::unordered_map<std::string, std::string> parseArgs(int argc, const char* arg
         } else {
             Porkchop::Error().with(
                     Porkchop::ErrorMessage().fatal().text("unknown flag: ").text(argv[i])
-                    ).report(nullptr, false);
+                    ).report(nullptr);
             std::exit(11);
         }
     }
     if (!args.contains("type")) {
         Porkchop::Error().with(
                 Porkchop::ErrorMessage().fatal().text("output type is not specified")
-                ).report(nullptr, false);
+                ).report(nullptr);
         std::exit(12);
     }
     if (!args.contains("output")) {
@@ -92,7 +92,7 @@ int main(int argc, const char* argv[]) try {
         try {
             compiler.compile(&assembler);
         } catch (Porkchop::Error& e) {
-            e.report(&compiler.source, true);
+            e.report(&compiler.source);
             std::exit(-1);
         }
         output_file.write(&assembler);
