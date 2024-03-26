@@ -51,6 +51,12 @@ fi
 
 if [ $verbose -eq 0 ]
 then
-  rm *.ll
-  rm out.o
+  for i in $(seq 0 $((cnt-1)))
+  do
+    rm ${i}.ll
+  done
+  if [ $interpret -eq 0 ]
+  then
+    rm out.o
+  fi
 fi
