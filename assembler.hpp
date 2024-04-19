@@ -139,7 +139,7 @@ struct Assembler {
     }
 
     [[nodiscard]] static std::string const_(bool b) {
-        return b ? "0" : "1";
+        return b ? "1" : "0";
     }
 
     [[nodiscard]] static std::string const_(int64_t i) {

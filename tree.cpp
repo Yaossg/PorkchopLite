@@ -966,6 +966,7 @@ std::string IfElseExpr::walkBytecode(Expr const* cond, Expr const* lhs, Expr con
     if (store && !isNever(rhs->getType())) assembler->store(rhs->reg, reg, type, token);
     if (!isNever(rhs->getType()))
         assembler->br(C);
+    if (isNever(type)) return reg;
     assembler->label(C);
     return store ? assembler->load(reg, type, token) : reg;
 }
@@ -1002,6 +1003,9 @@ void WhileExpr::walkBytecode(Assembler* assembler) const {
         assembler->br(A);
     }
     assembler->label(C);
+    if (isNever(getType())) {
+        assembler->append("unreachable", token);
+    }
 }
 
 TypeReference ReturnExpr::evalType(TypeReference const& infer) const {
