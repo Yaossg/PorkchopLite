@@ -1,6 +1,15 @@
+declare void @printint(i64 %0)
+declare void @printfloat(double %0)
+declare void @print_int_array(ptr %0, i64 %1)
+declare ptr @parallel_reduce(ptr %0, i64 %1, i64 %2, ptr %3, ptr %4)
 declare ptr @alloc(i64 %0)
 declare void @dealloc(ptr %0)
-declare void @print_int_array(ptr %0, i64 %1)
+declare ptr @parallel_for(ptr %0, i64 %1, ptr %2)
+declare i64 @thread_create(ptr %0, ptr %1)
+declare ptr @thread_join(i64 %0)
+declare i64 @thread_self()
+declare double @pc_time()
+declare void @exit(i64 %0)
 define void @swap(ptr %0, ptr %1) {
 L0:
     %2 = alloca ptr
