@@ -1,6 +1,16 @@
 export fn printint(value: int): none
 export fn printfloat(value: float): none
-export fn exit(status: int): never
 export fn print_int_array(array: *int, size: int): none
+
 export fn alloc(size: int): *none
 export fn dealloc(array: *none): none
+
+export fn thread_create(callback: (*none): *none, arg: *none): int
+export fn thread_join(thread: int): *none
+export fn thread_self(): int
+
+export fn pc_time(): float
+export fn exit(status: int): never
+
+export fn parallel_reduce(data: *none, size: int, length: int, proj: (*none): *none, acc: (*none, *none): *none): *none
+export fn parallel_for(data: *none, length: int, thread: (*none, int, int): *none): **none
