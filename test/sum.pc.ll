@@ -171,29 +171,38 @@ L6:
     br label %L7
 L7:
     %59 = load i64, ptr %2
-    %60 = icmp slt i64 %59, 16
-    br i1 %60, label %L8, label %L9
+    %60 = load ptr, ptr %8
+    %61 = getelementptr inbounds i64, ptr %60, i64 -1
+    %62 = load i64, ptr %61
+    %63 = icmp slt i64 %59, %62
+    br i1 %63, label %L8, label %L9
 L8:
-    %61 = load i64, ptr %9
-    %62 = load ptr, ptr %8
-    %63 = load i64, ptr %2
-    %64 = getelementptr inbounds i64, ptr %62, i64 %63
-    %65 = load i64, ptr %64
-    %66 = add i64 %61, %65
-    store i64 %66, ptr %9
-    %67 = load i64, ptr %2
-    %68 = add i64 %67, 1
-    store i64 %68, ptr %2
+    %64 = load i64, ptr %9
+    %65 = load ptr, ptr %8
+    %66 = load i64, ptr %2
+    %67 = getelementptr inbounds i64, ptr %65, i64 %66
+    %68 = load i64, ptr %67
+    %69 = add i64 %64, %68
+    store i64 %69, ptr %9
+    %70 = load i64, ptr %2
+    %71 = add i64 %70, 1
+    store i64 %71, ptr %2
     br label %L7
 L9:
-    %69 = load double, ptr %7
-    %70 = call double @pc_time()
-    %71 = fadd double %69, %70
-    store double %71, ptr %7
-    %72 = load i64, ptr %9
-    call void @printint(i64 %72)
-    %73 = load double, ptr %7
-    %74 = fmul double %73, 1000.000000
-    call void @printfloat(double %74)
+    %72 = load double, ptr %7
+    %73 = call double @pc_time()
+    %74 = fadd double %72, %73
+    store double %74, ptr %7
+    %75 = load i64, ptr %9
+    call void @printint(i64 %75)
+    %76 = load double, ptr %7
+    %77 = fmul double %76, 1000.000000
+    call void @printfloat(double %77)
+    %78 = load ptr, ptr %8
+    %79 = sub i64 0, 1
+    %80 = getelementptr inbounds ptr, ptr %78, i64 %79
+    call void @dealloc(ptr %80)
+    %81 = load ptr, ptr %1
+    call void @dealloc(ptr %81)
     ret void
 }

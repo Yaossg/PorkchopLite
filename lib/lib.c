@@ -122,7 +122,8 @@ pc_none** parallel_for(pc_none* data, pc_int length, pc_none *(*thread)(pc_none 
     pc_int task_count = length < CPU_COUNT ? length : CPU_COUNT;
     pthread_t* threads = malloc(sizeof(pc_int) * task_count);
     parallel_for_task* tasks = malloc(sizeof(parallel_reduce_task) * task_count);
-    pc_none** results = malloc(sizeof(pc_none*) * task_count);
+    pc_none** results = malloc(sizeof(pc_none*) * (task_count + 1));
+    *results++ = (pc_none*) task_count;
     for (pc_int i = 0; i < task_count; ++i) {
         tasks[i].data = data;
         tasks[i].offset = i * length / task_count;

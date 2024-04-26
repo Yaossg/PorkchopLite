@@ -40,14 +40,17 @@ fn main() = {
 	printfloat(time2 * 1000.0)
 
 	let time3 = -pc_time()
-	let sums3 = parallel_for(a as *none, n, range_sum) as *int
+	let sums = parallel_for(a as *none, n, range_sum) as *int
 	let sum3 = 0
 	i = 0
-	while i < 16 {
-		sum3 += sums3[i]
+	while i < sums[-1] {
+		sum3 += sums[i]
 		++i
 	}
 	time3 += pc_time()
 	printint(sum3)
 	printfloat(time3 * 1000.0)
+
+	dealloc((sums - 1) as *none)
+	dealloc(a as *none)
 }
